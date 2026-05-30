@@ -1,2 +1,188 @@
-/* For information on how to create your own theme, please refer to:
-http://ionicframework.com/docs/theming/ */
+:root {
+  --ion-font-family: Inter, "Segoe UI", Arial, sans-serif;
+
+  --ion-color-primary: #3B82F6;
+  --ion-color-primary-rgb: 59, 130, 246;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-shade: #1D4ED8;
+  --ion-color-primary-tint: #60A5FA;
+
+  --ion-color-success: #16A34A;
+  --ion-color-warning: #D97706;
+  --ion-color-danger: #DC2626;
+  --ion-color-medium: #64748B;
+  --ion-color-light: #F8FAFC;
+
+  --hris-radius-sm: 8px;
+  --hris-radius-md: 12px;
+  --hris-radius-lg: 14px;
+  --hris-radius-xl: 24px;
+  --hris-radius-pill: 20px;
+
+  --hris-bg: #0A0F1E;
+  --hris-card-bg: #111827;
+  --hris-border: rgba(255, 255, 255, 0.08);
+  --hris-text-dark: #E5E7EB;
+  --hris-text-light: #F8FAFC;
+  --hris-text-muted: #94A3B8;
+  --hris-text-secondary: #CBD5E1;
+  --hris-page-glow: rgba(59, 130, 246, 0.12);
+  --hris-soft-surface: rgba(255, 255, 255, 0.04);
+  --hris-soft-surface-2: rgba(255, 255, 255, 0.06);
+  --hris-input-bg: #0F172A;
+  --hris-input-border: rgba(148, 163, 184, 0.28);
+  --hris-input-focus-border: #60A5FA;
+  --hris-input-focus-shadow: 0 0 0 3px rgba(96, 165, 250, 0.12);
+  --hris-input-icon: #60A5FA;
+  --hris-input-icon-focus: #93C5FD;
+  --hris-input-placeholder: #94A3B8;
+  --hris-primary-button-bg: #1E3A8A;
+  --hris-primary-button-bg-active: #1e40af;
+  --hris-primary-button-shadow: 0 6px 20px rgba(30, 58, 138, .4);
+  --hris-secondary-button-bg: rgba(255, 255, 255, 0.06);
+  --hris-secondary-button-border: rgba(255, 255, 255, 0.12);
+  --hris-secondary-button-text: #E2E8F0;
+  --hris-secondary-button-icon: #93C5FD;
+  --hris-secondary-button-bg-active: rgba(255, 255, 255, 0.12);
+  --hris-divider: rgba(255, 255, 255, 0.08);
+  --hris-whatsapp-color: #25D366;
+  --hris-version-text: #93C5FD;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --hris-bg: #F5F7FB;
+  --hris-card-bg: #FFFFFF;
+  --hris-border: rgba(30, 41, 59, 0.12);
+  --hris-text-dark: #0F172A;
+  --hris-text-light: #0F172A;
+  --hris-text-muted: #64748B;
+  --hris-text-secondary: #475569;
+  --hris-page-glow: rgba(59, 130, 246, 0.08);
+  --hris-soft-surface: rgba(15, 23, 42, 0.03);
+  --hris-soft-surface-2: rgba(15, 23, 42, 0.05);
+  --hris-input-bg: #FFFFFF;
+  --hris-input-border: rgba(148, 163, 184, 0.45);
+  --hris-input-focus-border: #3B82F6;
+  --hris-input-focus-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  --hris-input-icon: #3B82F6;
+  --hris-input-icon-focus: #1D4ED8;
+  --hris-input-placeholder: #94A3B8;
+  --hris-primary-button-bg: #2563EB;
+  --hris-primary-button-bg-active: #1D4ED8;
+  --hris-primary-button-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+  --hris-secondary-button-bg: #EFF6FF;
+  --hris-secondary-button-border: #BFDBFE;
+  --hris-secondary-button-text: #1D4ED8;
+  --hris-secondary-button-icon: #2563EB;
+  --hris-secondary-button-bg-active: #DBEAFE;
+  --hris-divider: rgba(148, 163, 184, 0.25);
+  --hris-whatsapp-color: #25D366;
+  --hris-version-text: #3B82F6;
+  color-scheme: light;
+}
+
+ion-tabs,
+ion-router-outlet {
+  overflow: visible !important;
+  contain: none !important;
+}
+
+ion-tab-bar {
+  --background: var(--hris-card-bg);
+  --border: 1px solid var(--hris-border);
+  height: calc(56px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 100;
+  overflow: visible !important;
+  contain: none !important;
+}
+
+ion-tab-button {
+  --color: var(--hris-text-secondary);
+  --color-selected: var(--ion-color-primary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+ion-tab-button ion-icon {
+  font-size: 26px;
+}
+
+ion-tab-button.qris-tab {
+  overflow: visible !important;
+}
+
+ion-content {
+  color: var(--hris-text-light);
+}
+
+ion-item {
+  --color: var(--hris-text-dark);
+  color: var(--hris-text-dark);
+}
+
+ion-input {
+  --color: var(--hris-text-dark);
+  --placeholder-color: var(--hris-input-placeholder);
+  --placeholder-opacity: 1;
+  --highlight-color-focused: var(--ion-color-primary);
+  color: var(--hris-text-dark);
+}
+
+ion-alert.app-alert {
+  --backdrop-opacity: 0.38;
+  --border-radius: 20px;
+  --width: min(92vw, 380px);
+  --max-width: 380px;
+  --background: var(--hris-card-bg);
+  --color: var(--hris-text-light);
+  --title-color: var(--hris-text-light);
+  --subtitle-color: var(--hris-text-secondary);
+  --message-color: var(--hris-text-secondary);
+  --button-color: var(--ion-color-primary);
+  --ion-text-color: var(--hris-text-light);
+  --ion-color-step-850: var(--hris-text-dark);
+  --ion-color-step-950: var(--hris-text-light);
+  color: var(--hris-text-light);
+}
+
+ion-alert.app-alert::part(wrapper) {
+  border: 1px solid var(--hris-border);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+}
+
+ion-alert.app-alert::part(title) {
+  color: var(--hris-text-light) !important;
+  font-weight: 800;
+}
+
+ion-alert.app-alert::part(message) {
+  color: var(--hris-text-secondary) !important;
+  line-height: 1.5;
+}
+
+:root[data-theme="light"] ion-alert.app-alert::part(title) {
+  color: var(--hris-text-dark) !important;
+}
+
+:root[data-theme="light"] ion-alert.app-alert::part(message) {
+  color: var(--hris-text-secondary) !important;
+}
+
+:root[data-theme="light"] ion-alert.app-alert {
+  --background: var(--hris-card-bg);
+  --color: var(--hris-text-dark);
+  --title-color: var(--hris-text-dark);
+  --subtitle-color: var(--hris-text-secondary);
+  --message-color: var(--hris-text-secondary);
+  --ion-text-color: var(--hris-text-dark);
+  color: var(--hris-text-dark);
+}
+
+.custom-toast {
+  --border-radius: var(--hris-radius-lg);
+  --box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+  font-weight: 600;
+  font-size: 13px;
+}
