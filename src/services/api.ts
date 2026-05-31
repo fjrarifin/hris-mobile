@@ -53,7 +53,7 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
   let response: Response
 
   try {
-    alert(`URL: ${API_BASE_URL}${path}`)
+    // alert(`URL: ${API_BASE_URL}${path}`)
 
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
@@ -66,7 +66,7 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
             : undefined,
     })
   } catch (error) {
-    alert(`FETCH ERROR: ${String(error)}`)
+    // alert(`FETCH ERROR: ${String(error)}`)
     console.error('FETCH ERROR:', error)
     throw error
   }

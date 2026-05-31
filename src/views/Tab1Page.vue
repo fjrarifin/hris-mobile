@@ -10,8 +10,14 @@
             <span>HomPim Play</span>
           </div>
           <div class="topbar-actions">
-            <button type="button" class="notification-btn" aria-label="Notifikasi">
+            <button
+              type="button"
+              class="notification-btn"
+              aria-label="Buka notifikasi"
+              @click="openNotifications"
+            >
               <ion-icon :icon="notificationsOutline" />
+              <span v-if="hasWelcomeNotification" class="notification-badge">1</span>
             </button>
           </div>
         </header>
@@ -180,6 +186,7 @@ const attendance = ref<StaffAttendanceResponse | null>(null)
 const calendarLoading = ref(true)
 const calendarMonth = ref(monthKeyFromDate(new Date()))
 const currentTime = ref(new Date())
+const hasWelcomeNotification = ref(true)
 const backendLogoUrl = BACKEND_LOGO_URL
 let greetingTimer: number | null = null
 
@@ -436,6 +443,11 @@ function openSelfAttendance() {
   window.dispatchEvent(new CustomEvent('open-self-attendance'))
 }
 
+function openNotifications() {
+  hasWelcomeNotification.value = false
+  router.push('/notifications')
+}
+
 function openFeature(path: string, label: string) {
   if (path) {
     router.push(path)
@@ -527,6 +539,7 @@ onUnmounted(() => {
 }
 
 .notification-btn {
+  position: relative;
   width: 36px;
   height: 36px;
   border-radius: 999px;
@@ -537,10 +550,28 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
 }
 
 .notification-btn ion-icon {
   font-size: 22px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #EF4444;
+  color: #fff;
+  border: 2px solid var(--hris-bg);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 13px;
+  text-align: center;
 }
 
 .theme-toggle {
