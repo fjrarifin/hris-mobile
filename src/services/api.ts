@@ -50,16 +50,26 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
     headers.set('Authorization', `Bearer ${options.token}`)
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-    body:
-      options.body instanceof FormData
-        ? options.body
-        : options.body !== undefined
-          ? JSON.stringify(options.body)
-          : undefined,
-  })
+  let response: Response
+
+  try {
+    alert(`URL: ${API_BASE_URL}${path}`)
+
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+      body:
+        options.body instanceof FormData
+          ? options.body
+          : options.body !== undefined
+            ? JSON.stringify(options.body)
+            : undefined,
+    })
+  } catch (error) {
+    alert(`FETCH ERROR: ${String(error)}`)
+    console.error('FETCH ERROR:', error)
+    throw error
+  }
 
   const text = await response.text()
   const data = text ? JSON.parse(text) : null
