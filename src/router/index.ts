@@ -19,8 +19,28 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/forgot-password',
+    component: () => import('@/views/ForgotPasswordPage.vue'),
+    meta: { guestOnly: true }
+  },
+  {
     path: '/notifications',
     component: () => import('@/views/NotificationsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/requests/leave',
+    component: () => import('@/views/LeavePage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/requests/public-holiday',
+    component: () => import('@/views/PublicHolidayPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/requests/permission',
+    component: () => import('@/views/PermissionPage.vue'),
     meta: { requiresAuth: true }
   },
   {

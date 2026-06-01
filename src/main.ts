@@ -36,7 +36,7 @@ import './theme/variables.css';
 import { initTheme } from './services/theme'
 
 const app = createApp(App)
-  .use(IonicVue)
+  .use(IonicVue, { mode: 'ios' })
   .use(router);
 
 initTheme()

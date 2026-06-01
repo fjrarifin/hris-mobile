@@ -2,10 +2,15 @@
   <ion-page>
     <ion-content fullscreen class="password-page">
       <main class="password-shell">
+        <button type="button" class="back-button" @click="goBack">
+          <ion-icon :icon="arrowBackOutline" aria-hidden="true" />
+          Kembali
+        </button>
+
         <section class="heading">
           <ion-icon :icon="keyOutline" aria-hidden="true" />
           <h1>Ganti Password</h1>
-          <p>Password awal wajib diganti sebelum fitur HRIS dibuka.</p>
+          <p>Gunakan password baru minimal 8 karakter untuk menjaga keamanan akun.</p>
         </section>
 
         <form class="password-panel" @submit.prevent="submit">
@@ -56,11 +61,11 @@
 
 <script setup lang="ts">
 import { IonButton, IonContent, IonIcon, IonInput, IonItem, IonPage, IonSpinner } from '@ionic/vue'
-import { keyOutline } from 'ionicons/icons'
+import { arrowBackOutline, keyOutline } from 'ionicons/icons'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiErrorMessage } from '@/services/api'
-import { changeEmployeePassword } from '@/services/auth'
+import { authState, changeEmployeePassword, logoutEmployee } from '@/services/auth'
 
 const router = useRouter()
 const loading = ref(false)
@@ -87,6 +92,16 @@ async function submit() {
     loading.value = false
   }
 }
+
+async function goBack() {
+  if (authState.user?.must_change_password) {
+    await logoutEmployee()
+    await router.replace('/login')
+    return
+  }
+
+  router.back()
+}
 </script>
 
 <style scoped>
@@ -96,11 +111,28 @@ async function submit() {
 
 .password-shell {
   min-height: 100%;
-  padding: max(40px, env(safe-area-inset-top)) 22px 28px;
+  padding: max(20px, env(safe-area-inset-top)) 18px 22px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 22px;
+  gap: 16px;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 5px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ion-color-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.back-button ion-icon {
+  font-size: 16px;
 }
 
 .heading {
@@ -108,47 +140,47 @@ async function submit() {
 }
 
 .heading ion-icon {
-  width: 60px;
-  height: 60px;
-  padding: 16px;
+  width: 38px;
+  height: 38px;
+  padding: 11px;
   border-radius: 50%;
   background: rgba(56, 189, 248, .12);
   color: var(--hris-sky-blue);
 }
 
 .heading h1 {
-  margin: 16px 0 0;
+  margin: 11px 0 0;
   color: var(--hris-text-light);
-  font-size: 26px;
+  font-size: 21px;
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .heading p {
-  margin: 8px auto 0;
+  margin: 6px auto 0;
   max-width: 300px;
   color: var(--hris-text-secondary);
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 .password-panel {
-  padding: 22px;
-  border-radius: var(--hris-radius-xl);
+  padding: 16px;
+  border-radius: var(--hris-radius-lg);
   background: var(--hris-card-bg);
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
 }
 
 .field {
-  --min-height: 58px;
-  --background: #F5F7FF;
+  --min-height: 46px;
+  --background: var(--hris-input-bg);
   --color: var(--hris-text-dark);
-  --border-radius: 14px;
-  --padding-start: 14px;
-  --inner-padding-end: 14px;
-  margin-top: 13px;
-  border: 1px solid var(--hris-border);
-  border-radius: 14px;
+  --border-radius: 11px;
+  --padding-start: 12px;
+  --inner-padding-end: 12px;
+  margin-top: 10px;
+  border: 1px solid var(--hris-input-border);
+  border-radius: 11px;
 }
 
 .field ion-input {
@@ -156,6 +188,7 @@ async function submit() {
   --placeholder-color: var(--hris-text-secondary);
   --placeholder-opacity: 1;
   color: var(--hris-text-dark);
+  font-size: 13px;
 }
 
 .field:first-child {
@@ -163,12 +196,12 @@ async function submit() {
 }
 
 .feedback {
-  margin: 14px 0 0;
-  padding: 12px 14px;
-  border-radius: 12px;
+  margin: 11px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
   background: #ecfdf5;
   color: #047857;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -178,11 +211,12 @@ async function submit() {
 }
 
 .submit-button {
-  margin-top: 20px;
-  height: 48px;
-  --border-radius: 12px;
+  margin-top: 14px;
+  height: 42px;
+  --border-radius: 10px;
   --background: var(--hris-primary-button-bg);
   --background-activated: var(--hris-primary-button-bg-active);
+  font-size: 13px;
   font-weight: 800;
 }
 </style>

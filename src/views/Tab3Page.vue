@@ -18,14 +18,55 @@
         <template v-if="!loading">
           <!-- Hero -->
           <section class="profile-hero">
-            <button
-              type="button"
-              class="theme-toggle theme-toggle--hero"
-              :aria-label="themeToggleLabel"
-              @click="toggleThemeMode"
-            >
-              <ion-icon :icon="themeIcon" />
-            </button>
+            <div class="hero-actions">
+              <button
+                type="button"
+                class="theme-toggle theme-toggle--hero"
+                :aria-label="themeToggleLabel"
+                @click="toggleThemeMode"
+              >
+                <ion-icon :icon="themeIcon" />
+              </button>
+              <div class="settings-wrap">
+                <button
+                  type="button"
+                  class="theme-toggle theme-toggle--hero"
+                  aria-label="Buka konfigurasi profil"
+                  @click="settingsOpen = !settingsOpen"
+                >
+                  <ion-icon :icon="settingsOutline" />
+                </button>
+                <div v-if="settingsOpen" class="settings-menu">
+                  <button type="button" @click="openChangePassword">
+                    <ion-icon :icon="keyOutline" />
+                    Ubah Password
+                  </button>
+                  <button type="button" :disabled="photoLocked || uploadingPhoto" @click="openPhotoPicker">
+                    <ion-icon :icon="cameraOutline" />
+                    Ganti Foto Profil
+                  </button>
+                  <button type="button" :disabled="emailLocked || savingContact" @click="openContactModal('email')">
+                    <ion-icon :icon="mailOutline" />
+                    Ubah Email
+                  </button>
+                  <button type="button" :disabled="phoneLocked || savingContact" @click="openContactModal('phone')">
+                    <ion-icon :icon="callOutline" />
+                    Ganti Nomor Telepon
+                  </button>
+                  <button type="button" class="settings-logout" @click="logout">
+                    <ion-icon :icon="logOutOutline" />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+            <input
+              ref="photoInput"
+              class="hidden-input"
+              type="file"
+              accept="image/png,image/jpeg"
+              @change="choosePhoto"
+            />
             <!-- <p class="profile-eyebrow">Profil Karyawan</p> -->
             <ion-avatar class="profile-avatar">
               <img v-if="photoUrl" :src="photoUrl" alt="Foto profil" />
@@ -107,24 +148,77 @@
           </section>
         </template>
 
-        <!-- Logout selalu tampil -->
-        <section class="profile-actions">
-          <ion-button expand="block" class="logout-button" @click="logout">
-            <ion-icon slot="start" :icon="logOutOutline" aria-hidden="true" />
-            Logout
-          </ion-button>
-        </section>
+        <ion-modal :is-open="photoModalOpen" class="profile-modal" @didDismiss="closePhotoModal">
+          <section class="profile-modal-card">
+            <h2>Preview Foto Profil</h2>
+            <p>Pastikan foto sudah sesuai sebelum disimpan.</p>
+            <img v-if="photoPreviewUrl" :src="photoPreviewUrl" alt="Preview foto profil" class="photo-preview" />
+            <div class="modal-actions">
+              <ion-button fill="outline" :disabled="uploadingPhoto" @click="closePhotoModal">Batal</ion-button>
+              <ion-button :disabled="uploadingPhoto || !selectedPhoto" @click="savePhoto">
+                {{ uploadingPhoto ? 'Menyimpan...' : 'Simpan Foto' }}
+              </ion-button>
+            </div>
+          </section>
+        </ion-modal>
+
+        <ion-modal :is-open="contactModalOpen" class="profile-modal" @didDismiss="closeContactModal">
+          <section class="profile-modal-card">
+            <h2>{{ contactMode === 'email' ? 'Ubah Email' : 'Ganti Nomor Telepon' }}</h2>
+            <p v-if="contactMode === 'email'">Email hanya dapat diubah satu kali melalui aplikasi.</p>
+            <p v-else-if="phoneStep === 'input'">OTP akan dikirim ke nomor WhatsApp baru untuk memastikan nomor valid.</p>
+            <p v-else>Kode OTP telah dikirim. Masukkan 6 digit kode sebelum menyimpan nomor.</p>
+
+            <label class="modal-field">
+              <span>{{ contactMode === 'email' ? 'Email baru' : 'Nomor WhatsApp baru' }}</span>
+              <input
+                v-model.trim="contactValue"
+                :type="contactMode === 'email' ? 'email' : 'tel'"
+                :disabled="contactMode === 'phone' && phoneStep === 'otp'"
+                :placeholder="contactMode === 'email' ? 'nama@email.com' : '081234567890'"
+              />
+            </label>
+
+            <label v-if="contactMode === 'phone' && phoneStep === 'otp'" class="modal-field">
+              <span>Kode OTP</span>
+              <input v-model.trim="phoneOtp" inputmode="numeric" maxlength="6" placeholder="6 digit OTP" />
+            </label>
+
+            <p v-if="contactMessage" class="modal-feedback" :class="{ danger: contactHasError }">
+              {{ contactMessage }}
+            </p>
+
+            <div class="modal-actions">
+              <ion-button fill="outline" :disabled="savingContact" @click="closeContactModal">Batal</ion-button>
+              <ion-button v-if="contactMode === 'email'" :disabled="savingContact" @click="saveEmail">
+                {{ savingContact ? 'Menyimpan...' : 'Simpan Email' }}
+              </ion-button>
+              <ion-button
+                v-else-if="phoneStep === 'input'"
+                :disabled="savingContact"
+                @click="sendPhoneOtp"
+              >
+                {{ savingContact ? 'Mengirim...' : 'Kirim OTP' }}
+              </ion-button>
+              <ion-button v-else :disabled="savingContact || phoneOtp.length !== 6" @click="savePhone">
+                {{ savingContact ? 'Menyimpan...' : 'Verifikasi & Simpan' }}
+              </ion-button>
+            </div>
+          </section>
+        </ion-modal>
+
       </main>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { IonAvatar, IonButton, IonContent, IonIcon, IonPage } from '@ionic/vue'
+import { IonAvatar, IonButton, IonContent, IonIcon, IonModal, IonPage } from '@ionic/vue'
 import {
   briefcaseOutline,
   businessOutline,
   calendarOutline,
+  cameraOutline,
   callOutline,
   fileTrayFullOutline,
   gitNetworkOutline,
@@ -140,13 +234,21 @@ import {
   schoolOutline,
   walletOutline,
   moonOutline,
+  keyOutline,
+  settingsOutline,
   sunnyOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiErrorMessage } from '@/services/api'
-import { authState, logoutEmployee } from '@/services/auth'
-import { getStaffProfile, type StaffProfile } from '@/services/staff'
+import { authState, logoutEmployee, updateEmployeePhoto } from '@/services/auth'
+import {
+  getStaffProfile,
+  requestStaffProfilePhoneOtp,
+  updateStaffProfileContact,
+  updateStaffProfilePhoto,
+  type StaffProfile,
+} from '@/services/staff'
 import { themeMode, toggleTheme } from '@/services/theme'
 import { formatDate } from '@/utils/formatters'
 
@@ -160,6 +262,20 @@ const router = useRouter()
 const profile = ref<StaffProfile | null>(null)
 const loading = ref(false)
 const errorMessage = ref('')
+const settingsOpen = ref(false)
+const uploadingPhoto = ref(false)
+const savingContact = ref(false)
+const photoInput = ref<HTMLInputElement | null>(null)
+const photoModalOpen = ref(false)
+const selectedPhoto = ref<File | null>(null)
+const photoPreviewUrl = ref('')
+const contactModalOpen = ref(false)
+const contactMode = ref<'email' | 'phone'>('phone')
+const contactValue = ref('')
+const phoneOtp = ref('')
+const phoneStep = ref<'input' | 'otp'>('input')
+const contactMessage = ref('')
+const contactHasError = ref(false)
 
 const employee = computed(() => profile.value?.employee)
 const profileName = computed(
@@ -184,6 +300,9 @@ const themeIcon = computed(() => (themeMode.value === 'dark' ? sunnyOutline : mo
 const themeToggleLabel = computed(() =>
   themeMode.value === 'dark' ? 'Beralih ke tema terang' : 'Beralih ke tema gelap',
 )
+const photoLocked = computed(() => profile.value?.user?.can_change_photo === false)
+const phoneLocked = computed(() => profile.value?.user?.can_change_phone === false)
+const emailLocked = computed(() => profile.value?.user?.can_change_email === false)
 
 const workFields = computed<ProfileField[]>(() => [
   { label: 'Nama', value: profileName.value, icon: personOutline },
@@ -256,7 +375,177 @@ function toggleThemeMode() {
   toggleTheme()
 }
 
+async function openChangePassword() {
+  settingsOpen.value = false
+  await router.push('/change-password')
+}
+
+function openPhotoPicker() {
+  settingsOpen.value = false
+  if (photoLocked.value) {
+    errorMessage.value = `Foto profil baru dapat diganti pada ${profile.value?.user?.photo_change_available_label || 'jadwal berikutnya'}.`
+    return
+  }
+  photoInput.value?.click()
+}
+
+async function choosePhoto(event: Event) {
+  const input = event.target as HTMLInputElement
+  const photo = input.files?.[0]
+  if (!photo) return
+
+  errorMessage.value = ''
+  if (!['image/png', 'image/jpeg'].includes(photo.type)) {
+    errorMessage.value = 'Foto profil harus berformat PNG, JPG, atau JPEG.'
+    input.value = ''
+    return
+  }
+  if (photo.size > 5 * 1024 * 1024) {
+    errorMessage.value = 'Ukuran foto profil maksimal 5 MB.'
+    input.value = ''
+    return
+  }
+
+  try {
+    selectedPhoto.value = await compressProfilePhoto(photo)
+    photoPreviewUrl.value = URL.createObjectURL(selectedPhoto.value)
+    photoModalOpen.value = true
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Foto profil tidak dapat diproses.'
+    input.value = ''
+  }
+}
+
+async function savePhoto() {
+  if (!selectedPhoto.value) return
+
+  uploadingPhoto.value = true
+  try {
+    const response = await updateStaffProfilePhoto(selectedPhoto.value)
+    if (profile.value) Object.assign(profile.value.user, response)
+    updateEmployeePhoto(response.photo_url)
+    closePhotoModal(true)
+  } catch (error) {
+    errorMessage.value = apiErrorMessage(error, 'Foto profil tidak dapat diperbarui.')
+  } finally {
+    uploadingPhoto.value = false
+  }
+}
+
+function closePhotoModal(force = false) {
+  if (uploadingPhoto.value && !force) return
+  photoModalOpen.value = false
+  selectedPhoto.value = null
+  if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
+  photoPreviewUrl.value = ''
+  if (photoInput.value) photoInput.value.value = ''
+}
+
+function compressProfilePhoto(photo: File) {
+  return new Promise<File>((resolve, reject) => {
+    const image = new Image()
+    const objectUrl = URL.createObjectURL(photo)
+    image.onload = () => {
+      const maxDimension = 1200
+      const scale = Math.min(1, maxDimension / Math.max(image.width, image.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.round(image.width * scale))
+      canvas.height = Math.max(1, Math.round(image.height * scale))
+      const context = canvas.getContext('2d')
+      if (!context) {
+        URL.revokeObjectURL(objectUrl)
+        reject(new Error('Foto profil tidak dapat dikompres.'))
+        return
+      }
+      context.drawImage(image, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(objectUrl)
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error('Foto profil tidak dapat dikompres.'))
+          return
+        }
+        resolve(new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' }))
+      }, 'image/jpeg', 0.82)
+    }
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Foto profil tidak dapat dibaca.'))
+    }
+    image.src = objectUrl
+  })
+}
+
+function openContactModal(mode: 'email' | 'phone') {
+  settingsOpen.value = false
+  contactMode.value = mode
+  contactValue.value = mode === 'email' ? profile.value?.user?.email || '' : employee.value?.no_hp || ''
+  phoneOtp.value = ''
+  phoneStep.value = 'input'
+  contactMessage.value = ''
+  contactHasError.value = false
+  contactModalOpen.value = true
+}
+
+function closeContactModal(force = false) {
+  if (savingContact.value && !force) return
+  contactModalOpen.value = false
+}
+
+async function saveEmail() {
+  savingContact.value = true
+  contactHasError.value = false
+  try {
+    const response = await updateStaffProfileContact({ email: contactValue.value })
+    if (profile.value) {
+      Object.assign(profile.value.user, response.user)
+      Object.assign(profile.value.employee, response.employee)
+    }
+    closeContactModal(true)
+  } catch (error) {
+    contactHasError.value = true
+    contactMessage.value = apiErrorMessage(error, 'Email tidak dapat diperbarui.')
+  } finally {
+    savingContact.value = false
+  }
+}
+
+async function sendPhoneOtp() {
+  savingContact.value = true
+  contactHasError.value = false
+  try {
+    const response = await requestStaffProfilePhoneOtp(contactValue.value)
+    phoneStep.value = 'otp'
+    contactMessage.value = response.message
+  } catch (error) {
+    contactHasError.value = true
+    contactMessage.value = apiErrorMessage(error, 'Kode OTP tidak dapat dikirim.')
+  } finally {
+    savingContact.value = false
+  }
+}
+
+async function savePhone() {
+  savingContact.value = true
+  contactHasError.value = false
+  try {
+    const response = await updateStaffProfileContact({ no_hp: contactValue.value, phone_otp: phoneOtp.value })
+    if (profile.value) {
+      Object.assign(profile.value.user, response.user)
+      Object.assign(profile.value.employee, response.employee)
+    }
+    closeContactModal(true)
+  } catch (error) {
+    contactHasError.value = true
+    contactMessage.value = apiErrorMessage(error, 'Nomor telepon tidak dapat diperbarui.')
+  } finally {
+    savingContact.value = false
+  }
+}
+
 onMounted(loadProfile)
+onUnmounted(() => {
+  if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
+})
 </script>
 
 <style scoped>
@@ -284,9 +573,165 @@ onMounted(loadProfile)
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: max(28px, env(safe-area-inset-top)) 20px 52px;
+  padding: max(20px, env(safe-area-inset-top)) 20px 52px;
   background: linear-gradient(160deg, var(--ion-color-primary) 0%, var(--ion-color-primary-shade) 100%);
   color: #fff;
+}
+
+.hero-actions {
+  align-self: stretch;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.settings-wrap {
+  position: relative;
+}
+
+.settings-menu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  z-index: 5;
+  width: 210px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--hris-card-bg);
+  border: 1px solid var(--hris-border);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, .2);
+}
+
+.settings-menu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 9px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--hris-text-dark);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.settings-menu button:disabled {
+  opacity: .48;
+}
+
+.settings-menu ion-icon {
+  color: var(--ion-color-primary);
+  font-size: 17px;
+}
+
+.settings-menu .settings-logout {
+  margin-top: 4px;
+  border-top: 1px solid var(--hris-border);
+  border-radius: 0 0 9px 9px;
+  color: var(--ion-color-danger);
+}
+
+.settings-menu .settings-logout ion-icon {
+  color: var(--ion-color-danger);
+}
+
+.hidden-input {
+  display: none;
+}
+
+.profile-modal {
+  --background: transparent;
+  --height: auto;
+  --width: min(92vw, 420px);
+  --border-radius: 18px;
+}
+
+.profile-modal-card {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--hris-border);
+  background: var(--hris-card-bg);
+  color: var(--hris-text-dark);
+}
+
+.profile-modal-card h2 {
+  margin: 0;
+  color: var(--hris-text-dark);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.profile-modal-card p {
+  margin: 6px 0 0;
+  color: var(--hris-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.photo-preview {
+  display: block;
+  width: min(100%, 260px);
+  max-height: 280px;
+  margin: 14px auto 0;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.modal-field {
+  display: grid;
+  gap: 5px;
+  margin-top: 14px;
+}
+
+.modal-field span {
+  color: var(--hris-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.modal-field input {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid var(--hris-input-border);
+  border-radius: 10px;
+  outline: none;
+  background: var(--hris-input-bg);
+  color: var(--hris-text-dark);
+  font-size: 13px;
+}
+
+.modal-field input:focus {
+  border-color: var(--hris-input-focus-border);
+  box-shadow: var(--hris-input-focus-shadow);
+}
+
+.modal-feedback {
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: rgba(34, 197, 94, .12);
+  color: #16A34A !important;
+}
+
+.modal-feedback.danger {
+  background: rgba(239, 68, 68, .12);
+  color: #DC2626 !important;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.modal-actions ion-button {
+  min-height: 38px;
+  margin: 0;
+  --border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .profile-eyebrow {
@@ -408,29 +853,29 @@ onMounted(loadProfile)
 
 /* Group: satu card container, divider antar row */
 .info-group {
-  background: var(--hris-card-bg);
-  border: 1px solid var(--hris-border);
-  border-radius: 16px;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  /* background: var(--hris-card-bg); */
+  border-radius: 14px;
 }
 
 .info-row {
   display: flex;
-  gap: 12px;
+  gap: 9px;
   align-items: center;
-  padding: 13px 14px;
-  border-bottom: 1px solid var(--hris-border);
-}
-
-.info-row:last-child {
-  border-bottom: none;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--hris-border);
+  border-radius: 12px;
+  background: var(--hris-card-bg);
 }
 
 .info-icon {
   flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
   background: var(--hris-soft-surface);
   color: var(--ion-color-primary);
   display: flex;
@@ -439,7 +884,7 @@ onMounted(loadProfile)
 }
 
 .info-icon ion-icon {
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .info-copy {
@@ -450,7 +895,7 @@ onMounted(loadProfile)
 .info-copy span {
   display: block;
   color: var(--hris-text-secondary);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -461,26 +906,14 @@ onMounted(loadProfile)
   display: block;
   margin-top: 2px;
   color: var(--hris-text-dark);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 /* ── Actions ── */
-.profile-actions {
-  margin-top: 20px;
-  padding: 0 14px;
-}
-
-.logout-button {
-  height: 48px;
-  --border-radius: 12px;
-  --background: var(--hris-primary-button-bg);
-  --background-activated: var(--hris-primary-button-bg-active);
-  font-weight: 600;
-}
-
 /* ── Skeleton ── */
 @keyframes shimmer {
   0% { opacity: 0.35; }
@@ -524,8 +957,8 @@ onMounted(loadProfile)
 }
 
 .theme-toggle {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
   border: 1px solid var(--hris-border);
   background: var(--hris-card-bg);
@@ -541,7 +974,6 @@ onMounted(loadProfile)
 }
 
 .theme-toggle--hero {
-  align-self: flex-end;
   margin-bottom: 8px;
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.18);

@@ -7,7 +7,7 @@
             <img class="brand-logo" :src="backendLogoUrl" alt="HomPimPlay" />
             <!-- <div class="brand-mark">
             </div> -->
-            <span>HomPim Play</span>
+            <span>Employee Self Service</span>
           </div>
           <div class="topbar-actions">
             <button
@@ -17,7 +17,7 @@
               @click="openNotifications"
             >
               <ion-icon :icon="notificationsOutline" />
-              <span v-if="hasWelcomeNotification" class="notification-badge">1</span>
+              <span v-if="unreadNotificationTotal" class="notification-badge">{{ unreadNotificationTotal }}</span>
             </button>
           </div>
         </header>
@@ -48,7 +48,7 @@
           </div>
         </section>
 
-        <section class="stats-row">
+        <!-- <section class="stats-row">
           <article v-for="item in summaryCards" :key="item.label" class="stat-card">
             <div class="stat-icon-wrap" :style="{ background: item.bg }">
               <ion-icon :icon="item.icon" :style="{ color: item.color }" />
@@ -58,10 +58,10 @@
               <strong class="stat-val">{{ item.value }}</strong>
             </div>
           </article>
-        </section>
+        </section> -->
 
         <div class="section-label">Menu cepat</div>
-        <div class="quick-grid">
+        <div class="quick-scroller">
           <button
             v-for="action in quickActions"
             :key="action.label"
@@ -74,12 +74,15 @@
             </span>
             <span class="quick-text">
               <strong>{{ action.label }}</strong>
-              <small>{{ action.hint }}</small>
             </span>
           </button>
         </div>
 
-        <section class="attendance-panel">
+        <section
+          class="attendance-panel"
+          @touchstart.passive="startCalendarSwipe"
+          @touchend.passive="finishCalendarSwipe"
+        >
           <div class="attendance-header">
             <div>
               <h3 class="attendance-title">{{ calendarTitle }}</h3>
@@ -156,17 +159,15 @@ import {
   IonPage,
 } from '@ionic/vue'
 import {
-  cameraOutline,
   calendarClearOutline,
   chevronBackOutline,
   chevronForwardOutline,
   documentTextOutline,
   fingerPrintOutline,
-  medkitOutline,
+  bookOutline,
   notificationsOutline,
   personCircleOutline,
   shieldCheckmarkOutline,
-  walletOutline,
 } from 'ionicons/icons'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -175,10 +176,15 @@ import { BACKEND_LOGO_URL, apiErrorMessage } from '@/services/api'
 import {
   getStaffAttendance,
   getStaffDashboard,
+  type StaffScheduleRecord,
   type StaffAttendanceResponse,
   type StaffDashboard,
 } from '@/services/staff'
 import { formatTime, weeklyAttendanceLabel } from '@/utils/formatters'
+import {
+  NOTIFICATIONS_CHANGED_EVENT,
+  unreadNotificationCount,
+} from '@/services/notifications'
 
 const router = useRouter()
 const dashboard = ref<StaffDashboard | null>(null)
@@ -186,11 +192,13 @@ const attendance = ref<StaffAttendanceResponse | null>(null)
 const calendarLoading = ref(true)
 const calendarMonth = ref(monthKeyFromDate(new Date()))
 const currentTime = ref(new Date())
-const hasWelcomeNotification = ref(true)
+const unreadNotificationTotal = ref(unreadNotificationCount())
 const backendLogoUrl = BACKEND_LOGO_URL
 let greetingTimer: number | null = null
+let calendarSwipeStartX: number | null = null
+let calendarSwipeStartY: number | null = null
 
-const weekDays = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
 
 interface CalendarDay {
   key: string
@@ -199,7 +207,8 @@ interface CalendarDay {
   isToday?: boolean
   isFuture?: boolean
   record?: StaffAttendanceResponse['records'][number] | null
-  status?: 'present' | 'warning' | 'absent' | 'future' | 'holiday' | 'leave' | 'permit' | 'sick'
+  schedule?: StaffScheduleRecord | null
+  status?: 'present' | 'warning' | 'absent' | 'future' | 'schedule' | 'holiday' | 'leave' | 'permit' | 'sick'
   code?: string
 }
 
@@ -229,41 +238,20 @@ const greetingLabel = computed(() => {
   return 'Selamat malam'
 })
 
-const summaryCards = computed(() => [
-  // {
-  //   label: 'Total Hadir',
-  //   value: dashboard.value?.summary.attendance_days ?? '-',
-  //   icon: shieldCheckmarkOutline,
-  //   bg: 'rgba(34,197,94,0.12)',
-  //   color: '#22C55E',
-  // },
-  {
-    label: 'Jatah Cuti',
-    value: dashboard.value?.summary.leave_balance ?? '-',
-    icon: calendarClearOutline,
-    bg: 'rgba(251,191,36,0.12)',
-    color: '#FBBF24',
-  },
-  {
-    label: 'Jatah PH',
-    value: dashboard.value?.summary.public_holiday_balance ?? '-',
-    icon: walletOutline,
-    bg: 'rgba(167,139,250,0.12)',
-    color: '#A78BFA',
-  },
-])
-
 const quickActions = computed(() => [
   { label: 'Absensi', hint: 'Riwayat hadir', icon: fingerPrintOutline, path: '/tabs/attendance', bg: 'rgba(59,130,246,0.12)' },
-  { label: 'Cuti', hint: 'Ajukan cuti', icon: calendarClearOutline, path: '', bg: 'rgba(34,197,94,0.12)' },
-  { label: 'Izin', hint: 'Ajukan izin', icon: documentTextOutline, path: '', bg: 'rgba(251,191,36,0.12)' },
-  { label: 'PH', hint: 'Hari libur', icon: shieldCheckmarkOutline, path: '', bg: 'rgba(167,139,250,0.12)' },
-  { label: 'Sakit', hint: 'Lapor sakit', icon: medkitOutline, path: '', bg: 'rgba(244,63,94,0.12)' },
+  { label: 'Cuti', hint: 'Ajukan cuti', icon: calendarClearOutline, path: '/requests/leave', bg: 'rgba(34,197,94,0.12)' },
+  { label: 'PH', hint: 'Hari libur', icon: shieldCheckmarkOutline, path: '/requests/public-holiday', bg: 'rgba(167,139,250,0.12)' },
+  { label: 'Izin', hint: 'Ajukan izin', icon: documentTextOutline, path: '/requests/permission?type=izin', bg: 'rgba(251,191,36,0.12)' },
   { label: 'Profil', hint: 'Data diri', icon: personCircleOutline, path: '/tabs/profile', bg: 'rgba(148,163,184,0.18)' },
+  { label: 'Panduan', hint: 'Bantuan', icon: bookOutline, path: '/tabs/guide', bg: 'rgba(20,184,166,0.12)' },
 ])
 
 const attendanceRecordsByDate = computed(
   () => new Map((attendance.value?.records || []).map((record) => [record.date, record])),
+)
+const schedulesByDate = computed(
+  () => new Map((attendance.value?.schedules || []).map((schedule) => [schedule.date, schedule])),
 )
 
 const calendarTitle = computed(() =>
@@ -280,7 +268,7 @@ const calendarDays = computed(() => {
   const year = start.getFullYear()
   const month = start.getMonth()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const leadingDays = start.getDay()
+  const leadingDays = (start.getDay() + 6) % 7
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const items: CalendarDay[] = []
@@ -296,8 +284,9 @@ const calendarDays = computed(() => {
     const current = new Date(year, month, dateNumber)
     const key = dateKeyFromDate(current)
     const record = attendanceRecordsByDate.value.get(key)
+    const schedule = schedulesByDate.value.get(key)
     const isFuture = current.getTime() > today.getTime()
-    const status = resolveCalendarStatus(record, isFuture)
+    const status = resolveCalendarStatus(record, schedule, isFuture)
 
     items.push({
       key,
@@ -306,8 +295,9 @@ const calendarDays = computed(() => {
       isToday: key === dateKeyFromDate(today),
       isFuture,
       record,
+      schedule,
       status,
-      code: resolveCalendarCode(record, isFuture),
+      code: resolveCalendarCode(record, schedule, isFuture),
     })
   }
 
@@ -359,10 +349,11 @@ function monthEndFromKey(value: string) {
 
 function resolveCalendarStatus(
   record: StaffAttendanceResponse['records'][number] | undefined,
+  schedule: StaffScheduleRecord | undefined,
   isFuture: boolean,
 ): CalendarDay['status'] {
   if (isFuture) {
-    return 'future'
+    return schedule?.schedule_code ? 'schedule' : 'future'
   }
 
   const status = record?.status?.toLowerCase()
@@ -381,9 +372,10 @@ function resolveCalendarStatus(
 
 function resolveCalendarCode(
   record: StaffAttendanceResponse['records'][number] | undefined,
+  schedule: StaffScheduleRecord | undefined,
   isFuture: boolean,
 ) {
-  if (isFuture) return ''
+  if (isFuture) return schedule?.schedule_code || ''
 
   const status = record?.status?.toLowerCase()
   if (status === 'public_holiday' || status === 'ph') return 'PH'
@@ -420,6 +412,7 @@ async function loadAttendanceCalendar() {
 async function loadDashboard() {
   try {
     dashboard.value = await getStaffDashboard()
+    await showBirthdayGreeting()
     calendarMonth.value = monthKeyFromDate(new Date(dashboard.value.as_of_date))
     await loadAttendanceCalendar()
   } catch (error) {
@@ -432,6 +425,21 @@ async function loadDashboard() {
   }
 }
 
+async function showBirthdayGreeting() {
+  if (!dashboard.value?.employee.is_birthday_today) return
+
+  const storageKey = `hris_mobile_birthday_greeting:${dashboard.value.employee.nik}:${dashboard.value.as_of_date}`
+  if (localStorage.getItem(storageKey)) return
+
+  localStorage.setItem(storageKey, 'shown')
+  await showAppAlert({
+    header: 'Selamat Ulang Tahun',
+    message: `Selamat ulang tahun, ${dashboard.value.employee.name}! Semoga hari Anda dipenuhi kebahagiaan, kesehatan, dan hal-hal baik sepanjang tahun ini.`,
+    type: 'success',
+    buttons: [{ text: 'Terima kasih', role: 'confirm' }],
+  })
+}
+
 async function changeCalendarMonth(offset: number) {
   const current = monthStartFromKey(calendarMonth.value)
   current.setMonth(current.getMonth() + offset)
@@ -439,13 +447,31 @@ async function changeCalendarMonth(offset: number) {
   await loadAttendanceCalendar()
 }
 
-function openSelfAttendance() {
-  window.dispatchEvent(new CustomEvent('open-self-attendance'))
+function openNotifications() {
+  router.push('/notifications')
 }
 
-function openNotifications() {
-  hasWelcomeNotification.value = false
-  router.push('/notifications')
+function refreshNotificationBadge() {
+  unreadNotificationTotal.value = unreadNotificationCount()
+}
+
+function startCalendarSwipe(event: TouchEvent) {
+  calendarSwipeStartX = event.changedTouches[0]?.clientX ?? null
+  calendarSwipeStartY = event.changedTouches[0]?.clientY ?? null
+}
+
+function finishCalendarSwipe(event: TouchEvent) {
+  if (calendarSwipeStartX === null || calendarSwipeStartY === null || calendarLoading.value) return
+
+  const endX = event.changedTouches[0]?.clientX ?? calendarSwipeStartX
+  const endY = event.changedTouches[0]?.clientY ?? calendarSwipeStartY
+  const distance = endX - calendarSwipeStartX
+  const verticalDistance = endY - calendarSwipeStartY
+  calendarSwipeStartX = null
+  calendarSwipeStartY = null
+
+  if (Math.abs(distance) < 50 || Math.abs(distance) <= Math.abs(verticalDistance)) return
+  void changeCalendarMonth(distance < 0 ? 1 : -1)
 }
 
 function openFeature(path: string, label: string) {
@@ -470,6 +496,7 @@ onMounted(() => {
   greetingTimer = window.setInterval(updateGreetingTime, 60000)
   loadDashboard()
   window.addEventListener('attendance-submitted', loadDashboard)
+  window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, refreshNotificationBadge)
 })
 
 onUnmounted(() => {
@@ -478,6 +505,7 @@ onUnmounted(() => {
     greetingTimer = null
   }
   window.removeEventListener('attendance-submitted', loadDashboard)
+  window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, refreshNotificationBadge)
 })
 </script>
 
@@ -501,6 +529,7 @@ onUnmounted(() => {
   justify-content: space-between;
   flex-shrink: 0;
   padding: 6px 2px 2px;
+  margin-bottom: 8px;
 }
 
 .brand {
@@ -679,6 +708,7 @@ onUnmounted(() => {
   border-radius: 18px;
   padding: 14px 16px;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  margin-bottom: 8px;
 }
 
 .today-label {
@@ -728,10 +758,10 @@ onUnmounted(() => {
   background: var(--hris-card-bg);
   border: 1px solid var(--hris-border);
   border-radius: 18px;
-  padding: 12px 12px 11px;
+  padding: 10px 10px 9px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
@@ -788,25 +818,37 @@ onUnmounted(() => {
   margin-bottom: -4px;
 }
 
-.quick-grid {
+.quick-scroller {
   flex-shrink: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  display: flex;
+  gap: 9px;
+  margin: 0 -14px;
+  padding: 2px 14px 7px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+
+.quick-scroller::-webkit-scrollbar {
+  display: none;
 }
 
 .quick-item {
   display: flex;
+  width: 70px;
+  min-width: 70px;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  width: 100%;
+  gap: 7px;
   background: var(--hris-card-bg);
   border: 1px solid var(--hris-border);
-  border-radius: 18px;
-  padding: 14px 14px;
+  border-radius: 15px;
+  padding: 8px 5px 7px;
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
-  text-align: left;
+  scroll-snap-align: start;
+  text-align: center;
 }
 
 .quick-item:hover {
@@ -814,9 +856,9 @@ onUnmounted(() => {
 }
 
 .quick-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -828,20 +870,17 @@ onUnmounted(() => {
 .quick-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   min-width: 0;
+  width: 100%;
 }
 
 .quick-text strong {
-  font-size: 13px;
+  overflow: hidden;
+  font-size: 11px;
   font-weight: 800;
   color: var(--hris-text-dark);
-}
-
-.quick-text small {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--hris-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .attendance-panel {
@@ -964,7 +1003,7 @@ onUnmounted(() => {
   position: absolute;
   top: 8px;
   left: 8px;
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 800;
   color: var(--hris-text-dark);
   line-height: 1;
@@ -1022,6 +1061,11 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.calendar-cell--schedule {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.24);
+}
+
 .calendar-cell--today {
   border-color: #3b82f6;
   box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.35);
@@ -1059,6 +1103,21 @@ onUnmounted(() => {
 
 .calendar-cell--future .calendar-code {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.calendar-cell--schedule .calendar-code {
+  background: rgba(59, 130, 246, 0.24);
+  color: #bfdbfe;
+}
+
+:root[data-theme="light"] .calendar-cell--schedule {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.38);
+}
+
+:root[data-theme="light"] .calendar-cell--schedule .calendar-code {
+  background: rgba(37, 99, 235, 0.2);
+  color: #1d4ed8;
 }
 
 .legend-row {

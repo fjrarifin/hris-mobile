@@ -14,7 +14,7 @@
             <img v-if="BACKEND_LOGO_URL" :src="BACKEND_LOGO_URL" alt="Logo" class="logo-img" />
             <ion-icon v-else :icon="businessOutline" class="logo-icon" />
           </div>
-          <span class="logo-name">HomPim Play</span>
+          <span class="logo-name">Employee Self Service</span>
           <span class="ess-badge">ESS</span>
         </header>
 
@@ -24,13 +24,13 @@
             <span class="hero-dot" />
             Portal Karyawan
           </div>
-          <h1 class="hero-title">Selamat<br>datang<span class="hero-accent">.</span></h1>
-          <p class="hero-sub">Masuk menggunakan NIK<br>dan password Anda.</p>
+          <h1 class="hero-title">Selamat datang<span class="hero-accent">.</span></h1>
+          <p class="hero-sub">Masuk menggunakan NIK dan password Anda.</p>
         </section>
 
         <!-- Form card -->
         <section class="form-card">
-          <form @submit.prevent="submit">
+          <form autocomplete="on" @submit.prevent="submit">
 
             <!-- NIK field -->
             <div class="field" :class="{ 'field--focus': nikFocus, 'field--error': !!errorMessage }">
@@ -40,6 +40,7 @@
                   v-model.trim="form.username"
                   label="NIK"
                   label-placement="floating"
+                  name="username"
                   autocomplete="username"
                   inputmode="text"
                   required
@@ -59,6 +60,7 @@
                   :type="showPassword ? 'text' : 'password'"
                   label="Password"
                   label-placement="floating"
+                  name="password"
                   autocomplete="current-password"
                   required
                   class="field-input"
@@ -108,9 +110,8 @@
             </button>
           </div>
 
-          <p class="ver-txt">v{{ appVersion }} · CV. 3 Detik</p>
+          <p class="ver-txt">© 2026 · Build by IT Dept · v{{ appVersion }} </p>
         </section>
-
       </main>
     </ion-content>
   </ion-page>
@@ -172,12 +173,12 @@ function activeSessionMessage(error: ApiRequestError) {
 async function showHelp() {
   await showAppAlert({
     header: 'Bantuan Login',
-    message: 'Gunakan NIK dan password yang diberikan HRD. Jika lupa password, hubungi IT Dept melalui WhatsApp.',
+    message: 'Gunakan NIK dan password yang diberikan HRD. Jika lupa password, kirim OTP ke nomor WhatsApp yang terdaftar.',
     type: 'info',
     buttons: [
       {
-        text: 'Hubungi IT',
-        handler: () => { window.open('https://wa.me/6282117289833', '_blank') },
+        text: 'Lupa Password',
+        handler: () => { void router.push('/forgot-password') },
       },
       { text: 'Tutup', role: 'cancel' },
     ],
@@ -193,13 +194,6 @@ async function submit() {
   try {
     await loginEmployee(form.username, form.password)
 
-    const successAlert = await showAppAlert({
-      header: 'Login Berhasil',
-      message: 'Login berhasil. Selamat datang kembali.',
-      type: 'success',
-      buttons: [{ text: 'Lanjutkan', role: 'confirm' }],
-    })
-    await successAlert.onDidDismiss()
     await router.replace('/tabs/home')
 
   } catch (error) {

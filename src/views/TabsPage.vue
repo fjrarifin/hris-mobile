@@ -151,7 +151,6 @@
 <script setup lang="ts">
 import {
   IonIcon,
-  IonLabel,
   IonModal,
   IonPage,
   IonRouterOutlet,
@@ -420,7 +419,7 @@ async function takeSelfieAndAbsen() {
 .custom-tab-bar {
   --background: var(--hris-card-bg);
   --border: 1px solid var(--hris-border);
-  height: 66px;
+  height: 48px;
   box-shadow: 0 -8px 30px rgba(15, 23, 42, 0.08);
   position: relative;
   overflow: visible !important;
@@ -443,7 +442,7 @@ async function takeSelfieAndAbsen() {
 .fab-container {
   position: absolute;
   left: 50%;
-  top: 10px;
+  top: 5px;
   transform: translate(-50%, -50%);
   z-index: 10;
   pointer-events: auto;
@@ -464,7 +463,7 @@ async function takeSelfieAndAbsen() {
   gap: 1px;
 }
 
-.qris-fab ion-icon { font-size: 36px; }
+.qris-fab ion-icon { font-size: 30px; }
 .qris-label { font-size: 7.5px; font-weight: 800; letter-spacing: 0.5px; }
 
 .tab-placeholder {
@@ -487,8 +486,8 @@ async function takeSelfieAndAbsen() {
 
 /* ─── Modal ────────────────────────────────────────── */
 .tab-profile-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   overflow: hidden;
   display: inline-flex;

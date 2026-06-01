@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://127.0.0.1:8000/api'
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://10.20.10.70:8000/api'
 
 export const BACKEND_URL = API_BASE_URL.replace(/\/api$/, '')
 export const BACKEND_LOGO_URL = `${BACKEND_URL}/hompimplay_icon.png`
@@ -35,6 +35,13 @@ export function isApiRequestError(error: unknown): error is ApiRequestError {
 type ApiOptions = Omit<RequestInit, 'body'> & {
   token?: string | null
   body?: unknown
+}
+
+let unauthorizedHandler: (() => void) | null = null
+let unauthorizedRedirectStarted = false
+
+export function setUnauthorizedHandler(handler: () => void) {
+  unauthorizedHandler = handler
 }
 
 export async function apiRequest<T>(path: string, options: ApiOptions = {}): Promise<T> {
@@ -73,6 +80,15 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
 
   const text = await response.text()
   const data = text ? JSON.parse(text) : null
+
+  if (response.status === 401 && options.token && unauthorizedHandler) {
+    if (!unauthorizedRedirectStarted) {
+      unauthorizedRedirectStarted = true
+      unauthorizedHandler()
+    }
+
+    return new Promise<T>(() => undefined)
+  }
 
   if (!response.ok) {
     throw new ApiRequestError(response.status, data || {})

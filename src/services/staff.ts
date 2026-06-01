@@ -11,6 +11,7 @@ export interface StaffDashboard {
     department: string | null
     join_date: string | null
     photo_url: string | null
+    is_birthday_today?: boolean
   }
   summary: {
     working_days: number
@@ -102,6 +103,28 @@ export interface StaffProfile {
   }
 }
 
+export interface StaffProfileContactResponse {
+  message: string
+  user: {
+    email?: string | null
+    phone_updated_at?: string | null
+    can_change_phone?: boolean
+  }
+  employee: {
+    email?: string | null
+    no_hp: string | null
+  }
+}
+
+export interface StaffProfilePhotoResponse {
+  message: string
+  photo_url: string | null
+  photo_changed_at: string | null
+  photo_change_available_at: string | null
+  photo_change_available_label: string | null
+  can_change_photo: boolean
+}
+
 export interface StaffAttendanceRecord {
   date: string
   scan_in: string | null
@@ -131,6 +154,16 @@ export interface StaffAttendanceResponse {
     incomplete_days: number
   }
   records: StaffAttendanceRecord[]
+  schedules?: StaffScheduleRecord[]
+}
+
+export interface StaffScheduleRecord {
+  date: string
+  schedule_code: string | null
+  schedule_label: string | null
+  schedule_start_time: string | null
+  schedule_end_time: string | null
+  is_workday: boolean | null
 }
 
 export async function getStaffDashboard() {
@@ -196,5 +229,32 @@ export function getStaffAttendance(startDate: string, endDate: string) {
 export function getStaffProfile() {
   return apiRequest<StaffProfile>('/staff/profile', {
     token: authState.token,
+  })
+}
+
+export function requestStaffProfilePhoneOtp(noHp: string) {
+  return apiRequest<{ message: string; expires_in: number }>('/staff/profile/contact/phone-otp', {
+    method: 'POST',
+    token: authState.token,
+    body: { no_hp: noHp },
+  })
+}
+
+export function updateStaffProfileContact(payload: { email?: string; no_hp?: string; phone_otp?: string }) {
+  return apiRequest<StaffProfileContactResponse>('/staff/profile/contact', {
+    method: 'PATCH',
+    token: authState.token,
+    body: payload,
+  })
+}
+
+export function updateStaffProfilePhoto(photo: File) {
+  const body = new FormData()
+  body.append('photo', photo)
+
+  return apiRequest<StaffProfilePhotoResponse>('/staff/profile/photo', {
+    method: 'POST',
+    token: authState.token,
+    body,
   })
 }

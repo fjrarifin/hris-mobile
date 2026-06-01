@@ -109,13 +109,11 @@
 import {
   IonButton,
   IonContent,
-  IonIcon,
   IonPage,
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue'
 import type { RefresherCustomEvent } from '@ionic/vue'
-import { calendarOutline } from 'ionicons/icons'
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { showAppAlert } from '@/services/alerts'
 import { apiErrorMessage } from '@/services/api'
@@ -263,7 +261,7 @@ onUnmounted(() => {
 
 .page-shell {
   min-height: 100%;
-  padding: max(24px, env(safe-area-inset-top)) 16px 96px;
+  padding: max(18px, env(safe-area-inset-top)) 14px 84px;
 }
 
 .page-header {
@@ -308,27 +306,27 @@ onUnmounted(() => {
 }
 
 .hero-card {
-  padding: 18px;
-  margin-bottom: 18px;
+  padding: 14px;
+  margin-bottom: 12px;
 }
 
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
-  padding: 5px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
   background: var(--hris-soft-surface);
   color: var(--ion-color-primary);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
 
 .hero-card h2 {
-  margin: 12px 0 8px;
+  margin: 9px 0 6px;
   color: var(--hris-text-light);
-  font-size: 27px;
+  font-size: 20px;
   font-weight: 900;
 }
 
@@ -336,8 +334,8 @@ onUnmounted(() => {
 .info-card p {
   margin: 0;
   color: var(--hris-text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .filter-card,
@@ -350,8 +348,8 @@ onUnmounted(() => {
 }
 
 .filter-card {
-  padding: 16px;
-  border-radius: var(--hris-radius-xl);
+  padding: 12px;
+  border-radius: var(--hris-radius-lg);
 }
 
 .filter-header {
@@ -364,7 +362,7 @@ onUnmounted(() => {
 .filter-header span {
   display: block;
   color: var(--hris-text-secondary);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -373,7 +371,7 @@ onUnmounted(() => {
   display: block;
   margin-top: 4px;
   color: var(--hris-text-dark);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .reset-button {
@@ -383,84 +381,85 @@ onUnmounted(() => {
 
 .filter-form {
   display: grid;
-  gap: 12px;
-  margin-top: 14px;
+  gap: 9px;
+  margin-top: 11px;
 }
 
 .filter-field {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .filter-field span {
   color: var(--hris-text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .filter-field input {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 9px 11px;
+  border-radius: 10px;
   border: 1px solid var(--hris-input-border);
   background: var(--hris-input-bg);
   color: var(--hris-text-dark);
 }
 
 .apply-button {
-  height: 48px;
-  --border-radius: 12px;
+  height: 40px;
+  --border-radius: 10px;
   --background: var(--hris-primary-button-bg);
   --background-activated: var(--hris-primary-button-bg-active);
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .summary-card {
-  padding: 14px 12px;
-  border-radius: 16px;
+  padding: 10px 9px;
+  border-radius: 13px;
 }
 
 .summary-card span {
   display: block;
   color: var(--hris-text-secondary);
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .summary-card strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 5px;
   color: var(--hris-text-dark);
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 800;
 }
 
 .attendance-list {
   display: grid;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 9px;
+  margin-top: 12px;
 }
 
 .empty-state {
-  padding: 26px 16px;
+  padding: 18px 13px;
   border-radius: 12px;
   color: var(--hris-text-secondary);
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .attendance-row {
   display: grid;
-  gap: 12px;
-  padding: 16px;
+  gap: 9px;
+  padding: 12px;
   border-radius: var(--hris-radius-lg);
 }
 
@@ -474,14 +473,14 @@ onUnmounted(() => {
 .date-stack strong {
   display: block;
   color: var(--hris-text-dark);
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .date-stack span {
   display: block;
   margin-top: 4px;
   color: var(--hris-text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -494,23 +493,23 @@ onUnmounted(() => {
 .scan-col {
   background: var(--hris-soft-surface);
   border: 1px solid var(--hris-border);
-  border-radius: 14px;
-  padding: 10px 12px;
+  border-radius: 11px;
+  padding: 8px 10px;
 }
 
 .scan-col span {
   display: block;
   color: var(--hris-text-secondary);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .scan-col strong {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
   color: var(--hris-text-dark);
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 800;
 }
 
@@ -524,15 +523,15 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
+  padding: 5px 9px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.4px;
 }
 
 .status-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--hris-text-secondary);
 }

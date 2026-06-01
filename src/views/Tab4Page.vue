@@ -188,9 +188,9 @@ const sections = [
 
 .guide-shell {
   min-height: 100%;
-  padding: max(20px, env(safe-area-inset-top)) 16px 100px;
+  padding: max(18px, env(safe-area-inset-top)) 14px 84px;
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .hero-card,
@@ -203,26 +203,26 @@ const sections = [
 }
 
 .hero-card {
-  padding: 18px;
+  padding: 14px;
 }
 
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
-  padding: 5px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
   background: var(--hris-soft-surface);
   color: var(--ion-color-primary);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
 
 .hero-card h2 {
-  margin: 12px 0 8px;
+  margin: 9px 0 6px;
   color: var(--hris-text-light);
-  font-size: 27px;
+  font-size: 20px;
   font-weight: 900;
 }
 
@@ -230,72 +230,73 @@ const sections = [
 .info-card p {
   margin: 0;
   color: var(--hris-text-secondary);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .guide-group {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .guide-group ion-accordion {
   display: block;
   border: 1px solid var(--hris-border);
-  border-radius: 18px;
+  border-radius: 14px;
   overflow: hidden;
   background: var(--hris-card-bg);
 }
 
 .guide-header {
-  --padding-start: 14px;
-  --padding-end: 14px;
+  --min-height: 52px;
+  --padding-start: 11px;
+  --padding-end: 11px;
   --inner-padding-end: 0;
   --background: transparent;
   --color: var(--hris-text-dark);
 }
 
 .guide-icon {
-  font-size: 20px;
+  font-size: 17px;
   color: var(--ion-color-primary);
 }
 
 .guide-header h2 {
   margin: 0;
   color: var(--hris-text-dark);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 800;
 }
 
 .guide-header p {
   margin: 3px 0 0;
   color: var(--hris-text-secondary);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .guide-content {
-  padding: 0 16px 16px;
+  padding: 0 13px 12px;
   background: var(--hris-card-bg);
   color: var(--hris-text-secondary);
 }
 
 .guide-content ol {
   margin: 0;
-  padding-top: 12px;
+  padding-top: 9px;
   padding-left: 18px;
   display: grid;
-  gap: 10px;
+  gap: 7px;
 }
 
 .guide-content li {
   color: var(--hris-text-secondary);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .info-card {
-  padding: 18px;
-  border-radius: 18px;
+  padding: 14px;
+  border-radius: 14px;
   border: 1px solid var(--hris-border);
   background: var(--hris-card-bg);
 }
@@ -303,7 +304,7 @@ const sections = [
 .info-card h3 {
   margin: 0 0 8px;
   color: var(--hris-text-dark);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
 }
 </style>

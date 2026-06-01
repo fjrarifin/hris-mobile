@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { apiRequest } from './api'
+import { apiRequest, setUnauthorizedHandler } from './api'
 
 const TOKEN_KEY = 'hris_mobile_token'
 
@@ -14,6 +14,11 @@ export interface AuthUser {
   photo_url: string | null
   must_change_password: boolean
   session_idle_timeout_minutes?: number
+}
+
+export interface ForgotPasswordOtpPayload {
+  message: string
+  expires_in: number
 }
 
 export interface SessionPayload {
@@ -64,6 +69,37 @@ export async function loginEmployee(username: string, password: string) {
   localStorage.setItem(TOKEN_KEY, payload.token)
   applySession(payload)
   authState.initialized = true
+}
+
+export function requestPasswordOtp(nik: string) {
+  return apiRequest<ForgotPasswordOtpPayload>('/auth/forgot-password/request-otp', {
+    method: 'POST',
+    body: { nik },
+  })
+}
+
+export function verifyPasswordOtp(nik: string, otp: string) {
+  return apiRequest<{ message: string }>('/auth/forgot-password/verify-otp', {
+    method: 'POST',
+    body: { nik, otp },
+  })
+}
+
+export function resetForgottenPassword(
+  nik: string,
+  otp: string,
+  password: string,
+  passwordConfirmation: string,
+) {
+  return apiRequest<{ message: string }>('/auth/forgot-password/reset', {
+    method: 'POST',
+    body: {
+      nik,
+      otp,
+      password,
+      password_confirmation: passwordConfirmation,
+    },
+  })
 }
 
 export async function changeEmployeePassword(
@@ -128,4 +164,15 @@ export function clearSession() {
   authState.token = null
   authState.user = null
   localStorage.removeItem(TOKEN_KEY)
+}
+
+setUnauthorizedHandler(() => {
+  clearSession()
+  window.location.replace(`${import.meta.env.BASE_URL}login`)
+})
+
+export function updateEmployeePhoto(photoUrl: string | null) {
+  if (authState.user) {
+    authState.user.photo_url = photoUrl
+  }
 }
