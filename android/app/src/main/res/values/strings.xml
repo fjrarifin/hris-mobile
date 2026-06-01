@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">hris-mobile</string>
-    <string name="title_activity_main">hris-mobile</string>
+    <string name="app_name">ESS Hompimplay</string>
+    <string name="title_activity_main">ESS Hompimplay</string>
     <string name="package_name">com.hompimplay.hris</string>
     <string name="custom_url_scheme">com.hompimplay.hris</string>
 </resources>
