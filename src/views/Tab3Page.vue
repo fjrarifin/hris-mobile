@@ -345,7 +345,7 @@ const qrPayload = computed(() =>
     t: employee.value?.nik || username.value,
     m: profileName.value,
     c: qrDateCode.value,
-    x: [[9, 100, 373]],
+    x: [[9, 100, 374]],
   }),
 )
 
