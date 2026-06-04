@@ -19,6 +19,7 @@ export interface StaffDashboard {
     attendance_days: number
     leave_balance: number
     public_holiday_balance: number
+    extra_off_balance: number
   }
   attendance_period: {
     start: string

@@ -40,6 +40,29 @@ export interface PublicHolidayResponse {
   requests: PublicHolidayRequestItem[]
 }
 
+export interface ExtraOffSource {
+  source_period_start: string
+  source_period_end: string
+  label: string
+  days: number
+  used_days: number
+  remaining_days: number
+}
+
+export interface ExtraOffRequestItem {
+  id: number
+  source_period_start: string
+  source_period_end: string
+  claim_date: string
+  status: string
+}
+
+export interface ExtraOffResponse {
+  balance: number
+  sources: ExtraOffSource[]
+  requests: ExtraOffRequestItem[]
+}
+
 export interface PermissionRequestItem {
   id: number
   type: 'izin' | 'sakit'
@@ -119,6 +142,36 @@ export async function deletePublicHoliday(id: number) {
   })
 
   invalidateCache(['requests-public-holiday', 'staff-dashboard'])
+
+  return response
+}
+
+export function getExtraOffs(options: { force?: boolean } = {}) {
+  return cachedApiRequest<ExtraOffResponse>('requests-extra-off', '/staff/extra-off', {
+    ttlMs: TTL.publicHoliday,
+    force: options.force,
+  })
+}
+
+export async function createExtraOff(payload: { source_period_start: string; source_period_end: string; claim_date: string }) {
+  const response = await apiRequest<{ message: string }>('/staff/extra-off', {
+    method: 'POST',
+    token: authState.token,
+    body: payload,
+  })
+
+  invalidateCache(['requests-extra-off', 'staff-dashboard'])
+
+  return response
+}
+
+export async function deleteExtraOff(id: number) {
+  const response = await apiRequest<{ message: string }>(`/staff/extra-off/${id}`, {
+    method: 'DELETE',
+    token: authState.token,
+  })
+
+  invalidateCache(['requests-extra-off', 'staff-dashboard'])
 
   return response
 }

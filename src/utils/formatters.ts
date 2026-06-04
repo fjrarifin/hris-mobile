@@ -50,6 +50,10 @@ export function getAttendanceStatusMeta(
     return { code: 'PH', label: 'Public Holiday', className: 'status-holiday' }
   }
 
+  if (normalized === 'extra_off' || normalized === 'eo') {
+    return { code: 'EO', label: 'Extra Off', className: 'status-holiday' }
+  }
+
   if (normalized === 'leave' || normalized === 'cuti') {
     return { code: 'C', label: 'Cuti', className: 'status-leave' }
   }
@@ -80,6 +84,10 @@ export function getAttendanceStatusMeta(
 export function weeklyAttendanceLabel(status: string) {
   if (status === 'public_holiday' || status === 'ph') {
     return 'Public Holiday'
+  }
+
+  if (status === 'extra_off' || status === 'eo') {
+    return 'Extra Off'
   }
 
   if (status === 'leave' || status === 'cuti') {
@@ -115,6 +123,10 @@ export function weeklyAttendanceLabel(status: string) {
 
 export function weeklyAttendanceClass(status: string) {
   if (status === 'public_holiday' || status === 'ph') {
+    return 'status-holiday'
+  }
+
+  if (status === 'extra_off' || status === 'eo') {
     return 'status-holiday'
   }
 

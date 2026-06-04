@@ -160,6 +160,7 @@ import {
 } from '@ionic/vue'
 import {
   calendarClearOutline,
+  calendarOutline,
   chevronBackOutline,
   chevronForwardOutline,
   documentTextOutline,
@@ -246,6 +247,7 @@ const quickActions = computed(() => [
   { label: 'Absensi', hint: 'Riwayat hadir', icon: fingerPrintOutline, path: '/tabs/attendance', bg: 'rgba(59,130,246,0.12)' },
   { label: 'Cuti', hint: 'Ajukan cuti', icon: calendarClearOutline, path: '/requests/leave', bg: 'rgba(34,197,94,0.12)' },
   { label: 'PH', hint: 'Hari libur', icon: shieldCheckmarkOutline, path: '/requests/public-holiday', bg: 'rgba(167,139,250,0.12)' },
+  { label: 'EO', hint: 'Extra off', icon: calendarOutline, path: '/requests/extra-off', bg: 'rgba(20,184,166,0.12)' },
   { label: 'Izin', hint: 'Ajukan izin', icon: documentTextOutline, path: '/requests/permission?type=izin', bg: 'rgba(251,191,36,0.12)' },
   { label: 'Profil', hint: 'Data diri', icon: personCircleOutline, path: '/tabs/profile', bg: 'rgba(148,163,184,0.18)' },
   { label: 'Panduan', hint: 'Bantuan', icon: bookOutline, path: '/tabs/guide', bg: 'rgba(20,184,166,0.12)' },
@@ -319,6 +321,7 @@ const legendItems = [
   { code: 'M', label: 'Masuk', color: '#22C55E' },
   { code: 'A', label: 'Alfa / Tidak Hadir', color: '#EF4444' },
   { code: 'PH', label: 'Public Holiday', color: '#A78BFA' },
+  { code: 'EO', label: 'Extra Off', color: '#A78BFA' },
   { code: 'C', label: 'Cuti', color: '#FBBF24' },
   { code: 'I', label: 'Izin', color: '#60A5FA' },
   { code: 'S', label: 'Sakit', color: '#14B8A6' },
@@ -363,6 +366,7 @@ function resolveCalendarStatus(
   const status = record?.status?.toLowerCase()
 
   if (status === 'public_holiday' || status === 'ph') return 'holiday'
+  if (status === 'extra_off' || status === 'eo') return 'holiday'
   if (status === 'leave' || status === 'cuti') return 'leave'
   if (status === 'permission' || status === 'izin') return 'permit'
   if (status === 'sick' || status === 'sakit') return 'sick'
@@ -383,6 +387,7 @@ function resolveCalendarCode(
 
   const status = record?.status?.toLowerCase()
   if (status === 'public_holiday' || status === 'ph') return 'PH'
+  if (status === 'extra_off' || status === 'eo') return 'EO'
   if (status === 'leave' || status === 'cuti') return 'C'
   if (status === 'permission' || status === 'izin') return 'I'
   if (status === 'sick' || status === 'sakit') return 'S'

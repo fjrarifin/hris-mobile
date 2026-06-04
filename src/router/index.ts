@@ -39,6 +39,11 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/requests/extra-off',
+    component: () => import('@/views/ExtraOffPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/requests/permission',
     component: () => import('@/views/PermissionPage.vue'),
     meta: { requiresAuth: true }
