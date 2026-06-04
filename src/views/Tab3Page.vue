@@ -342,11 +342,11 @@ const familyAndPayrollFields = computed<ProfileField[]>(() => [
   { label: 'BPJS', value: employee.value?.no_bpjs || (employee.value?.bpjs ? 'Terdaftar' : '-'), icon: idCardOutline },
 ])
 
-async function loadProfile() {
+async function loadProfile(force = false) {
   loading.value = true
   errorMessage.value = ''
   try {
-    profile.value = await getStaffProfile()
+    profile.value = await getStaffProfile({ force })
   } catch (error) {
     errorMessage.value = apiErrorMessage(error, 'Profil tidak dapat dimuat.')
   } finally {

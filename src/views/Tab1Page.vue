@@ -192,11 +192,15 @@ const attendance = ref<StaffAttendanceResponse | null>(null)
 const calendarLoading = ref(true)
 const calendarMonth = ref(monthKeyFromDate(new Date()))
 const currentTime = ref(new Date())
-const unreadNotificationTotal = ref(unreadNotificationCount())
+const unreadNotificationTotal = ref(0)
 const backendLogoUrl = BACKEND_LOGO_URL
 let greetingTimer: number | null = null
 let calendarSwipeStartX: number | null = null
 let calendarSwipeStartY: number | null = null
+
+function handleAttendanceSubmitted() {
+  void loadDashboard(true)
+}
 
 const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
 
@@ -387,7 +391,7 @@ function resolveCalendarCode(
   return record ? 'M' : 'A'
 }
 
-async function loadAttendanceCalendar() {
+async function loadAttendanceCalendar(force = false) {
   if (!dashboard.value) {
     return
   }
@@ -397,7 +401,7 @@ async function loadAttendanceCalendar() {
   try {
     const start = monthStartFromKey(calendarMonth.value)
     const end = monthEndFromKey(calendarMonth.value)
-    attendance.value = await getStaffAttendance(dateKeyFromDate(start), dateKeyFromDate(end))
+    attendance.value = await getStaffAttendance(dateKeyFromDate(start), dateKeyFromDate(end), { force })
   } catch (error) {
     await showAppAlert({
       header: 'Gagal Memuat Kalender',
@@ -409,12 +413,12 @@ async function loadAttendanceCalendar() {
   }
 }
 
-async function loadDashboard() {
+async function loadDashboard(force = false) {
   try {
-    dashboard.value = await getStaffDashboard()
+    dashboard.value = await getStaffDashboard({ force })
     await showBirthdayGreeting()
     calendarMonth.value = monthKeyFromDate(new Date(dashboard.value.as_of_date))
-    await loadAttendanceCalendar()
+    await loadAttendanceCalendar(force)
   } catch (error) {
     await showAppAlert({
       header: 'Gagal Memuat Dashboard',
@@ -451,8 +455,8 @@ function openNotifications() {
   router.push('/notifications')
 }
 
-function refreshNotificationBadge() {
-  unreadNotificationTotal.value = unreadNotificationCount()
+async function refreshNotificationBadge() {
+  unreadNotificationTotal.value = await unreadNotificationCount()
 }
 
 function startCalendarSwipe(event: TouchEvent) {
@@ -495,7 +499,8 @@ onMounted(() => {
   updateGreetingTime()
   greetingTimer = window.setInterval(updateGreetingTime, 60000)
   loadDashboard()
-  window.addEventListener('attendance-submitted', loadDashboard)
+  void refreshNotificationBadge()
+  window.addEventListener('attendance-submitted', handleAttendanceSubmitted)
   window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, refreshNotificationBadge)
 })
 
@@ -504,7 +509,7 @@ onUnmounted(() => {
     window.clearInterval(greetingTimer)
     greetingTimer = null
   }
-  window.removeEventListener('attendance-submitted', loadDashboard)
+  window.removeEventListener('attendance-submitted', handleAttendanceSubmitted)
   window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, refreshNotificationBadge)
 })
 </script>

@@ -101,10 +101,10 @@ const loading = ref(true)
 const saving = ref(false)
 const isNormatif = computed(() => (data.value.leave_types[form.leave_type] || '').toLowerCase().includes('normatif'))
 
-async function load() {
+async function load(force = false) {
   loading.value = true
   try {
-    data.value = await getLeaves()
+    data.value = await getLeaves({ force })
   } catch (error) {
     await showAppAlert({ header: 'Gagal Memuat Cuti', message: apiErrorMessage(error), type: 'danger' })
   } finally {
@@ -119,7 +119,7 @@ async function submit() {
     form.start_date = ''
     form.end_date = ''
     form.reason = ''
-    await load()
+    await load(true)
     await showAppAlert({ header: 'Pengajuan Terkirim', message: response.message, type: 'success' })
   } catch (error) {
     await showAppAlert({ header: 'Pengajuan Gagal', message: apiErrorMessage(error), type: 'danger' })
@@ -132,7 +132,7 @@ async function remove(id: number) {
   if (!window.confirm('Batalkan pengajuan cuti ini?')) return
   try {
     const response = await deleteLeave(id)
-    await load()
+    await load(true)
     await showAppAlert({ header: 'Pengajuan Dibatalkan', message: response.message, type: 'success' })
   } catch (error) {
     await showAppAlert({ header: 'Pembatalan Gagal', message: apiErrorMessage(error), type: 'danger' })
@@ -140,7 +140,7 @@ async function remove(id: number) {
 }
 
 async function refresh(event: RefresherCustomEvent) {
-  await load()
+  await load(true)
   event.target.complete()
 }
 

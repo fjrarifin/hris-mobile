@@ -63,9 +63,9 @@ const form = reactive({ public_holiday_id: '', claim_date: '' })
 const loading = ref(true)
 const saving = ref(false)
 
-async function load() {
+async function load(force = false) {
   loading.value = true
-  try { data.value = await getPublicHolidays() }
+  try { data.value = await getPublicHolidays({ force }) }
   catch (error) { await showAppAlert({ header: 'Gagal Memuat PH', message: apiErrorMessage(error), type: 'danger' }) }
   finally { loading.value = false }
 }
@@ -75,7 +75,7 @@ async function submit() {
   try {
     const response = await createPublicHoliday(form)
     form.public_holiday_id = ''; form.claim_date = ''
-    await load()
+    await load(true)
     await showAppAlert({ header: 'Pengajuan Terkirim', message: response.message, type: 'success' })
   } catch (error) { await showAppAlert({ header: 'Pengajuan Gagal', message: apiErrorMessage(error), type: 'danger' }) }
   finally { saving.value = false }
@@ -84,12 +84,12 @@ async function submit() {
 async function remove(id: number) {
   if (!window.confirm('Batalkan pengajuan Public Holiday ini?')) return
   try {
-    const response = await deletePublicHoliday(id); await load()
+    const response = await deletePublicHoliday(id); await load(true)
     await showAppAlert({ header: 'Pengajuan Dibatalkan', message: response.message, type: 'success' })
   } catch (error) { await showAppAlert({ header: 'Pembatalan Gagal', message: apiErrorMessage(error), type: 'danger' }) }
 }
 
-async function refresh(event: RefresherCustomEvent) { await load(); event.target.complete() }
+async function refresh(event: RefresherCustomEvent) { await load(true); event.target.complete() }
 onMounted(load)
 </script>
 

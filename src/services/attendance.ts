@@ -1,5 +1,6 @@
 import { apiRequest } from './api'
 import { authState } from './auth'
+import { invalidateCache, invalidateCachePrefix } from './cache'
 
 export interface SelfAttendanceLog {
   date: string      // YYYY-MM-DD
@@ -36,7 +37,7 @@ export async function saveSelfAttendanceToBackend(
   latitude: number,
   longitude: number
 ): Promise<SelfAttendanceBackendResponse> {
-  return apiRequest<SelfAttendanceBackendResponse>('/staff/attendance/selfie', {
+  const response = await apiRequest<SelfAttendanceBackendResponse>('/staff/attendance/selfie', {
     token: authState.token,
     method: 'POST',
     body: {
@@ -45,6 +46,11 @@ export async function saveSelfAttendanceToBackend(
       longitude,
     },
   })
+
+  invalidateCache(['staff-dashboard'])
+  invalidateCachePrefix('staff-attendance:')
+
+  return response
 }
 
 export function saveSelfAttendanceLog(photo: string, latitude: number, longitude: number): SelfAttendanceLog {

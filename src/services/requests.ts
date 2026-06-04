@@ -1,5 +1,6 @@
 import { apiRequest } from './api'
 import { authState } from './auth'
+import { cachedApiRequest, invalidateCache } from './cache'
 
 export interface LeaveRequestItem {
   id: number
@@ -52,70 +53,102 @@ export interface PermissionResponse {
   requests: PermissionRequestItem[]
 }
 
-export function getLeaves() {
-  return apiRequest<LeaveResponse>('/staff/leave', {
-    token: authState.token,
+const TTL = {
+  requests: 10 * 60 * 1000,
+  publicHoliday: 12 * 60 * 60 * 1000,
+}
+
+export function getLeaves(options: { force?: boolean } = {}) {
+  return cachedApiRequest<LeaveResponse>('requests-leave', '/staff/leave', {
+    ttlMs: TTL.requests,
+    force: options.force,
   })
 }
 
-export function createLeave(payload: {
+export async function createLeave(payload: {
   leave_type: string
   start_date: string
   end_date: string
   reason: string
 }) {
-  return apiRequest<{ message: string }>('/staff/leave', {
+  const response = await apiRequest<{ message: string }>('/staff/leave', {
     method: 'POST',
     token: authState.token,
     body: payload,
   })
+
+  invalidateCache(['requests-leave', 'staff-dashboard'])
+
+  return response
 }
 
-export function deleteLeave(id: number) {
-  return apiRequest<{ message: string }>(`/staff/leave/${id}`, {
+export async function deleteLeave(id: number) {
+  const response = await apiRequest<{ message: string }>(`/staff/leave/${id}`, {
     method: 'DELETE',
     token: authState.token,
   })
+
+  invalidateCache(['requests-leave', 'staff-dashboard'])
+
+  return response
 }
 
-export function getPublicHolidays() {
-  return apiRequest<PublicHolidayResponse>('/staff/public-holiday', {
-    token: authState.token,
+export function getPublicHolidays(options: { force?: boolean } = {}) {
+  return cachedApiRequest<PublicHolidayResponse>('requests-public-holiday', '/staff/public-holiday', {
+    ttlMs: TTL.publicHoliday,
+    force: options.force,
   })
 }
 
-export function createPublicHoliday(payload: { public_holiday_id: string; claim_date: string }) {
-  return apiRequest<{ message: string }>('/staff/public-holiday', {
+export async function createPublicHoliday(payload: { public_holiday_id: string; claim_date: string }) {
+  const response = await apiRequest<{ message: string }>('/staff/public-holiday', {
     method: 'POST',
     token: authState.token,
     body: payload,
   })
+
+  invalidateCache(['requests-public-holiday', 'staff-dashboard'])
+
+  return response
 }
 
-export function deletePublicHoliday(id: number) {
-  return apiRequest<{ message: string }>(`/staff/public-holiday/${id}`, {
+export async function deletePublicHoliday(id: number) {
+  const response = await apiRequest<{ message: string }>(`/staff/public-holiday/${id}`, {
     method: 'DELETE',
     token: authState.token,
   })
+
+  invalidateCache(['requests-public-holiday', 'staff-dashboard'])
+
+  return response
 }
 
-export function getPermissions() {
-  return apiRequest<PermissionResponse>('/staff/permission', {
-    token: authState.token,
+export function getPermissions(options: { force?: boolean } = {}) {
+  return cachedApiRequest<PermissionResponse>('requests-permission', '/staff/permission', {
+    ttlMs: TTL.requests,
+    force: options.force,
   })
 }
 
-export function createPermission(payload: FormData) {
-  return apiRequest<{ message: string }>('/staff/permission', {
+export async function createPermission(payload: FormData) {
+  const response = await apiRequest<{ message: string }>('/staff/permission', {
     method: 'POST',
     token: authState.token,
     body: payload,
   })
+
+  invalidateCache(['requests-permission', 'staff-dashboard'])
+
+  return response
 }
 
-export function deletePermission(id: number) {
-  return apiRequest<{ message: string }>(`/staff/permission/${id}`, {
+export async function deletePermission(id: number) {
+  const response = await apiRequest<{ message: string }>(`/staff/permission/${id}`, {
     method: 'DELETE',
     token: authState.token,
   })
+
+  invalidateCache(['requests-permission', 'staff-dashboard'])
+
+  return response
 }

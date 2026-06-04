@@ -42,6 +42,7 @@
               <p>{{ notification.message }}</p>
             </div>
           </article>
+          <p v-if="!notifications.length" class="empty-state">Belum ada notifikasi.</p>
         </section>
       </main>
     </ion-content>
@@ -74,13 +75,14 @@ const readNotificationIds = ref(new Set<string>())
 const currentTime = ref(Date.now())
 let relativeTimeTimer: number | undefined
 
-function loadNotifications() {
-  notifications.value = notificationHistory()
+async function loadNotifications() {
+  notifications.value = await notificationHistory()
   readNotificationIds.value = readNotificationIdsSnapshot()
 }
 
 function isRead(id: string) {
-  return readNotificationIds.value.has(id)
+  return notifications.value.find((notification) => notification.id === id)?.readAt
+    || readNotificationIds.value.has(id)
 }
 
 function relativeTime(createdAt: string) {
@@ -98,8 +100,8 @@ function relativeTime(createdAt: string) {
 }
 
 async function openNotification(notification: AppNotification) {
-  markNotificationAsRead(notification.id)
-  loadNotifications()
+  await markNotificationAsRead(notification.id)
+  await loadNotifications()
 
   if (notification.path) {
     await router.push(notification.path)
@@ -111,7 +113,7 @@ function goBack() {
 }
 
 onMounted(() => {
-  loadNotifications()
+  void loadNotifications()
   relativeTimeTimer = window.setInterval(() => {
     currentTime.value = Date.now()
   }, 60000)

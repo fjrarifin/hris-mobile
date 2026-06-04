@@ -25,7 +25,7 @@
             </ion-button>
           </div>
 
-          <form class="filter-form" @submit.prevent="loadAttendance">
+          <form class="filter-form" @submit.prevent="loadAttendance()">
             <label class="filter-field">
               <span>Tanggal Awal</span>
               <input v-model="filters.start_date" type="date" />
@@ -114,12 +114,14 @@ import {
   IonRefresherContent,
 } from '@ionic/vue'
 import type { RefresherCustomEvent } from '@ionic/vue'
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { showAppAlert } from '@/services/alerts'
 import { apiErrorMessage } from '@/services/api'
 import { getStaffAttendance, type StaffAttendanceRecord, type StaffAttendanceResponse } from '@/services/staff'
 import { formatTime, getAttendanceStatusMeta } from '@/utils/formatters'
 
+const route = useRoute()
 const attendance = ref<StaffAttendanceResponse | null>(null)
 const loading = ref(false)
 const hasLoaded = ref(false)
@@ -201,7 +203,7 @@ function statusMeta(day: StaffAttendanceRecord) {
   return getAttendanceStatusMeta(day.status, isComplete, false)
 }
 
-async function loadAttendance() {
+async function loadAttendance(force = false) {
   loading.value = true
 
   try {
@@ -217,7 +219,7 @@ async function loadAttendance() {
       filters.end_date = end_date
     }
 
-    attendance.value = await getStaffAttendance(start_date, end_date)
+    attendance.value = await getStaffAttendance(start_date, end_date, { force })
     hasLoaded.value = true
   } catch (error) {
     await showAppAlert({
@@ -237,20 +239,51 @@ function resetFilters() {
   filters.end_date = ''
 }
 
+function applyQueryFilters() {
+  const startDate = typeof route.query.start_date === 'string' ? route.query.start_date : ''
+  const endDate = typeof route.query.end_date === 'string' ? route.query.end_date : ''
+
+  if (!startDate && !endDate) {
+    return false
+  }
+
+  filters.start_date = startDate || endDate
+  filters.end_date = endDate || startDate
+
+  return true
+}
+
+function handleAttendanceSubmitted() {
+  void loadAttendance(true)
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    if (applyQueryFilters()) {
+      void loadAttendance()
+    }
+  },
+)
+
 async function refresh(event: RefresherCustomEvent) {
   if (hasLoaded.value) {
-    await loadAttendance()
+    await loadAttendance(true)
   }
 
   event.target.complete()
 }
 
 onMounted(() => {
-  window.addEventListener('attendance-submitted', loadAttendance)
+  if (applyQueryFilters()) {
+    void loadAttendance()
+  }
+
+  window.addEventListener('attendance-submitted', handleAttendanceSubmitted)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('attendance-submitted', loadAttendance)
+  window.removeEventListener('attendance-submitted', handleAttendanceSubmitted)
 })
 </script>
 

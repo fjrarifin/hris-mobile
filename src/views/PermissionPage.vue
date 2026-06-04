@@ -72,9 +72,9 @@ const cameraInput = ref<HTMLInputElement | null>(null)
 const loading = ref(true)
 const saving = ref(false)
 
-async function load() {
+async function load(force = false) {
   loading.value = true
-  try { requests.value = (await getPermissions()).requests }
+  try { requests.value = (await getPermissions({ force })).requests }
   catch (error) { await showAppAlert({ header: 'Gagal Memuat Pengajuan', message: apiErrorMessage(error), type: 'danger' }) }
   finally { loading.value = false }
 }
@@ -96,7 +96,7 @@ async function submit() {
     form.date = ''; form.reason = ''; form.document = null
     if (uploadInput.value) uploadInput.value.value = ''
     if (cameraInput.value) cameraInput.value.value = ''
-    await load()
+    await load(true)
     await showAppAlert({ header: 'Pengajuan Terkirim', message: response.message, type: 'success' })
   } catch (error) { await showAppAlert({ header: 'Pengajuan Gagal', message: apiErrorMessage(error), type: 'danger' }) }
   finally { saving.value = false }
@@ -105,7 +105,7 @@ async function submit() {
 async function remove(id: number) {
   if (!window.confirm('Batalkan pengajuan izin atau sakit ini?')) return
   try {
-    const response = await deletePermission(id); await load()
+    const response = await deletePermission(id); await load(true)
     await showAppAlert({ header: 'Pengajuan Dibatalkan', message: response.message, type: 'success' })
   } catch (error) { await showAppAlert({ header: 'Pembatalan Gagal', message: apiErrorMessage(error), type: 'danger' }) }
 }
@@ -114,7 +114,7 @@ function applyRouteType() {
   form.type = route.query.type === 'sakit' ? 'sakit' : 'izin'
 }
 
-async function refresh(event: RefresherCustomEvent) { await load(); event.target.complete() }
+async function refresh(event: RefresherCustomEvent) { await load(true); event.target.complete() }
 watch(() => route.query.type, applyRouteType)
 onMounted(() => { applyRouteType(); void load() })
 </script>

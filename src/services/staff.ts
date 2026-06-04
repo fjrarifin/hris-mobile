@@ -1,5 +1,6 @@
 import { apiRequest } from './api'
 import { authState } from './auth'
+import { cachedApiRequest, invalidateCache, invalidateCachePrefix } from './cache'
 import { getSelfAttendanceLogs } from './attendance'
 
 export interface StaffDashboard {
@@ -166,9 +167,16 @@ export interface StaffScheduleRecord {
   is_workday: boolean | null
 }
 
-export async function getStaffDashboard() {
-  const dashboard = await apiRequest<StaffDashboard>('/staff/dashboard', {
-    token: authState.token,
+const TTL = {
+  dashboard: 2 * 60 * 1000,
+  attendance: 5 * 60 * 1000,
+  profile: 24 * 60 * 60 * 1000,
+}
+
+export async function getStaffDashboard(options: { force?: boolean } = {}) {
+  const dashboard = await cachedApiRequest<StaffDashboard>('staff-dashboard', '/staff/dashboard', {
+    ttlMs: TTL.dashboard,
+    force: options.force,
   })
 
   if (dashboard && dashboard.weekly_attendance && dashboard.weekly_attendance.days) {
@@ -217,18 +225,21 @@ export async function getStaffDashboard() {
   return dashboard
 }
 
-export function getStaffAttendance(startDate: string, endDate: string) {
-  return apiRequest<StaffAttendanceResponse>(
+export function getStaffAttendance(startDate: string, endDate: string, options: { force?: boolean } = {}) {
+  return cachedApiRequest<StaffAttendanceResponse>(
+    `staff-attendance:${startDate}:${endDate}`,
     `/staff/attendance?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`,
     {
-      token: authState.token,
+      ttlMs: TTL.attendance,
+      force: options.force,
     },
   )
 }
 
-export function getStaffProfile() {
-  return apiRequest<StaffProfile>('/staff/profile', {
-    token: authState.token,
+export function getStaffProfile(options: { force?: boolean } = {}) {
+  return cachedApiRequest<StaffProfile>('staff-profile', '/staff/profile', {
+    ttlMs: TTL.profile,
+    force: options.force,
   })
 }
 
@@ -240,12 +251,16 @@ export function requestStaffProfilePhoneOtp(noHp: string) {
   })
 }
 
-export function updateStaffProfileContact(payload: { email?: string; no_hp?: string; phone_otp?: string }) {
-  return apiRequest<StaffProfileContactResponse>('/staff/profile/contact', {
+export async function updateStaffProfileContact(payload: { email?: string; no_hp?: string; phone_otp?: string }) {
+  const response = await apiRequest<StaffProfileContactResponse>('/staff/profile/contact', {
     method: 'PATCH',
     token: authState.token,
     body: payload,
   })
+
+  invalidateCache(['staff-profile', 'staff-dashboard'])
+
+  return response
 }
 
 export function updateStaffProfilePhoto(photo: File) {
@@ -256,5 +271,10 @@ export function updateStaffProfilePhoto(photo: File) {
     method: 'POST',
     token: authState.token,
     body,
+  }).then((response) => {
+    invalidateCache(['staff-profile', 'staff-dashboard'])
+    invalidateCachePrefix('staff-attendance:')
+
+    return response
   })
 }
