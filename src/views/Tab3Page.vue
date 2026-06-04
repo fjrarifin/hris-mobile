@@ -27,6 +27,14 @@
               >
                 <ion-icon :icon="themeIcon" />
               </button>
+              <button
+                type="button"
+                class="theme-toggle theme-toggle--hero profile-qr-button"
+                aria-label="Tampilkan QR karyawan"
+                @click="openQrModal"
+              >
+                <ion-icon :icon="qrCodeOutline" />
+              </button>
               <div class="settings-wrap">
                 <button
                   type="button"
@@ -207,6 +215,23 @@
           </section>
         </ion-modal>
 
+        <ion-modal :is-open="qrModalOpen" class="profile-modal" @didDismiss="closeQrModal">
+          <section class="profile-modal-card profile-qr-modal">
+            <h2>QR Akses Gate</h2>
+            <p>{{ profileName }} · {{ employee?.nik || username }}</p>
+
+            <div class="qr-frame">
+              <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR karyawan" />
+              <span v-else>Memuat QR...</span>
+            </div>
+
+            <div class="modal-actions">
+              <ion-button fill="outline" @click="refreshQrCode">Refresh</ion-button>
+              <ion-button @click="closeQrModal">Tutup</ion-button>
+            </div>
+          </section>
+        </ion-modal>
+
       </main>
     </ion-content>
   </ion-page>
@@ -230,6 +255,7 @@ import {
   mailOutline,
   peopleOutline,
   personOutline,
+  qrCodeOutline,
   ribbonOutline,
   schoolOutline,
   walletOutline,
@@ -238,6 +264,7 @@ import {
   settingsOutline,
   sunnyOutline,
 } from 'ionicons/icons'
+import QRCode from 'qrcode'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiErrorMessage } from '@/services/api'
@@ -276,6 +303,8 @@ const phoneOtp = ref('')
 const phoneStep = ref<'input' | 'otp'>('input')
 const contactMessage = ref('')
 const contactHasError = ref(false)
+const qrModalOpen = ref(false)
+const qrDataUrl = ref('')
 
 const employee = computed(() => profile.value?.employee)
 const profileName = computed(
@@ -303,6 +332,22 @@ const themeToggleLabel = computed(() =>
 const photoLocked = computed(() => profile.value?.user?.can_change_photo === false)
 const phoneLocked = computed(() => profile.value?.user?.can_change_phone === false)
 const emailLocked = computed(() => profile.value?.user?.can_change_email === false)
+const qrDateCode = computed(() => {
+  const today = new Date()
+  const year = String(today.getFullYear()).slice(-2)
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+
+  return `${year}${month}${day}`
+})
+const qrPayload = computed(() =>
+  JSON.stringify({
+    t: employee.value?.nik || username.value,
+    m: profileName.value,
+    c: qrDateCode.value,
+    x: [[9, 100, 373]],
+  }),
+)
 
 const workFields = computed<ProfileField[]>(() => [
   { label: 'Nama', value: profileName.value, icon: personOutline },
@@ -489,6 +534,27 @@ function openContactModal(mode: 'email' | 'phone') {
 function closeContactModal(force = false) {
   if (savingContact.value && !force) return
   contactModalOpen.value = false
+}
+
+async function openQrModal() {
+  qrModalOpen.value = true
+  await refreshQrCode()
+}
+
+function closeQrModal() {
+  qrModalOpen.value = false
+}
+
+async function refreshQrCode() {
+  qrDataUrl.value = await QRCode.toDataURL(qrPayload.value, {
+    errorCorrectionLevel: 'M',
+    margin: 1,
+    width: 280,
+    color: {
+      dark: '#0f172a',
+      light: '#ffffff',
+    },
+  })
 }
 
 async function saveEmail() {
@@ -978,5 +1044,56 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.18);
   color: #fff;
+}
+
+.profile-qr-button {
+  color: #fff;
+}
+
+.profile-qr-button ion-icon {
+  font-size: 18px;
+}
+
+.profile-qr-modal {
+  text-align: center;
+}
+
+.qr-frame {
+  display: grid;
+  width: min(100%, 300px);
+  aspect-ratio: 1;
+  place-items: center;
+  margin: 16px auto 12px;
+  padding: 10px;
+  border: 1px solid var(--hris-border);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.qr-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.qr-frame span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.profile-qr-modal code {
+  display: block;
+  max-height: 86px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--hris-soft-surface);
+  color: var(--hris-text-dark);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 </style>

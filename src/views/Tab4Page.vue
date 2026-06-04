@@ -141,9 +141,9 @@ const sections = [
   {
     title: 'Sesi Login',
     icon: flashlightOutline,
-    note: 'Berakhir otomatis bila terlalu lama tidak digunakan.',
+    note: 'Berakhir otomatis setelah 7 hari tidak digunakan.',
     steps: [
-      'Jika aplikasi dibiarkan terlalu lama tanpa aktivitas, Anda perlu login ulang.',
+      'Jika aplikasi tidak dipakai atau tidak dibuka selama 7 hari, Anda perlu login ulang.',
       'Satu akun tidak bisa digunakan bersamaan di banyak perangkat.',
       'Gunakan logout saat selesai memakai aplikasi.',
     ],
