@@ -138,6 +138,8 @@ export interface StaffAttendanceRecord {
   schedule_label?: string | null
   schedule_start_time?: string | null
   schedule_end_time?: string | null
+  is_corrected?: boolean
+  correction_notes?: string | null
 }
 
 export interface StaffAttendanceResponse {

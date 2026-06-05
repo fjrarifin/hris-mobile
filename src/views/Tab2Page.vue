@@ -92,6 +92,9 @@
 
               <div class="row-footer">
                 <span class="status-label">{{ statusMeta(day).label }}</span>
+                <span v-if="day.is_corrected" class="status-label correction-note">
+                  <br>⚠️ {{ day.correction_notes || 'Diperbaiki otomatis oleh HRD' }}
+                </span>
               </div>
             </article>
 
@@ -615,6 +618,13 @@ onUnmounted(() => {
   background: rgba(20, 184, 166, 0.14);
   color: #0F766E;
   border: 1px solid rgba(20, 184, 166, 0.22);
+}
+
+.correction-note {
+  color: #B45309;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 4px;
 }
 
 @media (max-width: 420px) {

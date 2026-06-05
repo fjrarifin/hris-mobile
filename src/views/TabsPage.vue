@@ -35,7 +35,7 @@
 
         <ion-tab-button tab="profile" href="/tabs/profile" class="tab-btn">
           <span class="tab-profile-avatar">
-            <img v-if="profilePhoto" :src="profilePhoto" alt="Foto profil" />
+            <SecureImage v-if="profilePhoto" :src="profilePhoto" alt="Foto profil" />
             <span v-else class="tab-profile-initials">{{ profileInitials }}</span>
           </span>
           <!-- <ion-label>Profil</ion-label> -->
@@ -166,6 +166,7 @@ import {
   checkmarkCircleOutline,
 } from 'ionicons/icons'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import SecureImage from '@/components/SecureImage.vue'
 import { getStaffDashboard } from '@/services/staff'
 import { apiErrorMessage } from '@/services/api'
 import { showAppAlert } from '@/services/alerts'

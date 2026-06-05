@@ -77,7 +77,7 @@
             />
             <!-- <p class="profile-eyebrow">Profil Karyawan</p> -->
             <ion-avatar class="profile-avatar">
-              <img v-if="photoUrl" :src="photoUrl" alt="Foto profil" />
+              <SecureImage v-if="photoUrl" :src="photoUrl" alt="Foto profil" />
               <span v-else>{{ initials }}</span>
             </ion-avatar>
             <h1>{{ profileName }}</h1>
@@ -266,6 +266,7 @@ import {
 } from 'ionicons/icons'
 import QRCode from 'qrcode'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import SecureImage from '@/components/SecureImage.vue'
 import { useRouter } from 'vue-router'
 import { apiErrorMessage } from '@/services/api'
 import { authState, logoutEmployee, updateEmployeePhoto } from '@/services/auth'
