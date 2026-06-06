@@ -266,6 +266,15 @@ function getGPSLocation() {
 }
 
 async function openSelfAttendance() {
+  if (!authState.user?.allow_mobile_attendance) {
+    void showAppAlert({
+      header: 'Akses Ditolak',
+      message: 'Fitur absensi mobile dinonaktifkan untuk akun Anda. Silakan hubungi IT Administrator.',
+      type: 'warning'
+    })
+    return
+  }
+
   showModal.value = true
   cameraActive.value = false
   cameraError.value = ''
