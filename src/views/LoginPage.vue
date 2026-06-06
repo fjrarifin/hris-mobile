@@ -10,12 +10,12 @@
 
         <!-- Top bar: logo -->
         <header class="topbar">
+          <img src="/app-icon.png" class="ess-badge" alt="App Icon" />
+          <span class="logo-name">Employee Self Service</span>
           <div class="logo-chip">
             <img v-if="BACKEND_LOGO_URL" :src="BACKEND_LOGO_URL" alt="Logo" class="logo-img" />
             <ion-icon v-else :icon="businessOutline" class="logo-icon" />
           </div>
-          <span class="logo-name">Employee Self Service</span>
-          <span class="ess-badge">ESS</span>
         </header>
 
         <!-- Hero -->
@@ -292,6 +292,7 @@ async function submit() {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  margin-left: auto;
 }
 
 .logo-img {
@@ -312,15 +313,10 @@ async function submit() {
 }
 
 .ess-badge {
-  margin-left: auto;
-  background: rgba(56, 189, 248, .1);
-  border: 1px solid rgba(56, 189, 248, .25);
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
   border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #38BDF8;
-  letter-spacing: .5px;
 }
 
 /* ─── Hero ─────────────────────────────────────────── */

@@ -25,7 +25,7 @@ document.addEventListener('ionBackButton', (ev: any) => {
           buttons: [
             { text: 'Batal', role: 'cancel' },
             { text: 'Tutup', handler: () => { void App.exitApp(); } },
-            { text: 'Logout', handler: () => { void logoutEmployee(); } }
+            { text: 'Logout', handler: async () => { await logoutEmployee(); ionRouter.replace('/login'); } }
           ]
         });
       } else {

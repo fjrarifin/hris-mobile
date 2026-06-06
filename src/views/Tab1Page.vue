@@ -4,7 +4,7 @@
       <main class="dash-shell">
         <header class="topbar">
           <div class="brand">
-            <img class="brand-logo" :src="backendLogoUrl" alt="HomPimPlay" />
+            <img class="brand-logo" src="/app-icon.png" alt="HomPimPlay" />
             <!-- <div class="brand-mark">
             </div> -->
             <span>Employee Self Service</span>
@@ -566,7 +566,7 @@ onUnmounted(() => {
 }
 
 .brand-logo {
-  width: 58px;
+  width: 48px;
   object-fit: contain;
   flex-shrink: 0;
 }
