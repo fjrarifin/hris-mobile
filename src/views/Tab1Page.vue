@@ -539,7 +539,7 @@ onUnmounted(() => {
   justify-content: space-between;
   flex-shrink: 0;
   padding: 6px 2px 2px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .brand {
@@ -566,7 +566,7 @@ onUnmounted(() => {
 }
 
 .brand-logo {
-  width: 48px;
+  width: 36px;
   object-fit: contain;
   flex-shrink: 0;
 }
