@@ -13,6 +13,7 @@ export interface AuthUser {
   level_label: string
   photo_url: string | null
   must_change_password: boolean
+  allow_mobile_attendance: boolean
   session_idle_timeout_minutes?: number
 }
 
