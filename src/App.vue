@@ -17,7 +17,7 @@ const ionRouter = useIonRouter();
 document.addEventListener('ionBackButton', (ev: any) => {
   ev.detail.register(10, (processNextHandler: () => void) => {
     if (!ionRouter.canGoBack()) {
-      if (authState.isAuthenticated) {
+      if (!!authState.token) {
         void showAppAlert({
           header: 'Keluar Aplikasi',
           message: 'Apakah Anda ingin menutup aplikasi atau logout dari akun?',
