@@ -25,9 +25,39 @@ export function requestStatusClass(status: string) {
 export function requestDate(value?: string | null) {
   if (!value) return '-'
 
+  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (dateOnlyMatch) {
+    return formatCalendarDate(dateOnlyMatch)
+  }
+
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(value)) {
+    const date = new Date(value)
+
+    if (!Number.isNaN(date.getTime())) {
+      return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'Asia/Jakarta',
+      }).format(date)
+    }
+  }
+
+  const datePrefixMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (datePrefixMatch) {
+    return formatCalendarDate(datePrefixMatch)
+  }
+
+  return '-'
+}
+
+function formatCalendarDate(dateMatch: RegExpMatchArray) {
+  const [, year, month, day] = dateMatch
+
   return new Intl.DateTimeFormat('id-ID', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
-  }).format(new Date(`${value.slice(0, 10)}T00:00:00`))
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12)))
 }

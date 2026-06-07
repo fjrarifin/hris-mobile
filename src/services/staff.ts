@@ -134,6 +134,9 @@ export interface StaffAttendanceRecord {
   total_scans: number
   is_complete: boolean
   status?: string
+  status_label?: string
+  attendance_source?: string
+  has_scan?: boolean
   schedule_code?: string | null
   schedule_label?: string | null
   schedule_start_time?: string | null

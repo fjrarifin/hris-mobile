@@ -163,10 +163,8 @@ function formatSessionTime(value?: string | null) {
 
 function activeSessionMessage(error: ApiRequestError) {
   const session   = error.data.active_session
-  const device    = session?.device_name    || 'Perangkat lain'
-  const network   = session?.network_address ? ` Jaringan: ${session.network_address}.` : ''
   const lastActive = formatSessionTime(session?.last_active_at)
-  return `Akun ini sedang login di ${device}.${network} Aktivitas terakhir: ${lastActive} WIB.`
+  return `Akun ini sedang login di perangkat lain. Aktivitas terakhir: ${lastActive} WIB.`
 }
 
 /* ── Bantuan alert ───────────────────────────────────── */

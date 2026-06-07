@@ -359,10 +359,6 @@ function resolveCalendarStatus(
   schedule: StaffScheduleRecord | undefined,
   isFuture: boolean,
 ): CalendarDay['status'] {
-  if (isFuture) {
-    return schedule?.schedule_code ? 'schedule' : 'future'
-  }
-
   const status = record?.status?.toLowerCase()
 
   if (status === 'public_holiday' || status === 'ph') return 'holiday'
@@ -370,6 +366,10 @@ function resolveCalendarStatus(
   if (status === 'leave' || status === 'cuti') return 'leave'
   if (status === 'permission' || status === 'izin') return 'permit'
   if (status === 'sick' || status === 'sakit') return 'sick'
+
+  if (isFuture) {
+    return schedule?.schedule_code ? 'schedule' : 'future'
+  }
 
   if (record) {
     return record.is_complete ? 'present' : 'warning'
@@ -383,8 +383,6 @@ function resolveCalendarCode(
   schedule: StaffScheduleRecord | undefined,
   isFuture: boolean,
 ) {
-  if (isFuture) return schedule?.schedule_code || ''
-
   const status = record?.status?.toLowerCase()
   if (status === 'public_holiday' || status === 'ph') return 'PH'
   if (status === 'extra_off' || status === 'eo') return 'EO'
@@ -392,6 +390,8 @@ function resolveCalendarCode(
   if (status === 'permission' || status === 'izin') return 'I'
   if (status === 'sick' || status === 'sakit') return 'S'
   if (status === 'holiday' || status === 'libur' || status === 'off') return 'L'
+
+  if (isFuture) return schedule?.schedule_code || ''
 
   return record ? 'M' : 'A'
 }
