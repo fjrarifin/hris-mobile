@@ -2,50 +2,73 @@
   <ion-page>
     <ion-content fullscreen class="dash-page" :scroll-y="true">
       <main class="dash-shell">
-        <header class="topbar">
-          <div class="brand">
-            <img class="brand-logo" src="/app-icon.png" alt="HomPimPlay" />
-            <!-- <div class="brand-mark">
-            </div> -->
-            <span>Employee Self Service</span>
-          </div>
-          <div class="topbar-actions">
-            <button
-              type="button"
-              class="notification-btn"
-              aria-label="Buka notifikasi"
-              @click="openNotifications"
-            >
-              <ion-icon :icon="notificationsOutline" />
-              <span v-if="unreadNotificationTotal" class="notification-badge">{{ unreadNotificationTotal }}</span>
-            </button>
-          </div>
-        </header>
-
-        <section class="hero-panel">
-          <div class="hero-copy">
-            <p class="hero-greeting">{{ greetingLabel }} 👋</p>
-            <h2 class="hero-name">{{ employeeName }}</h2>
-            <div class="hero-tags">
-              <span class="hero-tag hero-tag--success">{{ todayStatusLabel }}</span>
-              <span class="hero-tag hero-tag--soft">{{ employeeNik }}</span>
+        <section class="header-gradient">
+          <header class="topbar">
+            <div class="brand">
+              <img class="brand-logo" :src="BACKEND_LOGO_URL" alt="HomPimPlay" />
+              <!-- <div class="brand-mark">
+              </div> -->
+              <span>HomPim Play</span>
             </div>
-          </div>
-        </section>
+            <div class="topbar-actions">
+              <button
+                type="button"
+                class="notification-btn"
+                aria-label="Buka notifikasi"
+                @click="openNotifications"
+              >
+                <ion-icon :icon="notificationsOutline" />
+                <span v-if="unreadNotificationTotal" class="notification-badge">{{ unreadNotificationTotal }}</span>
+              </button>
+            </div>
+          </header>
 
-        <section class="today-card">
-          <div>
-            <p class="today-label">Masuk</p>
-            <strong class="today-time" :class="{ 'today-time--set': todayAttendance?.scan_in }">
-              {{ formatTime(todayAttendance?.scan_in) || '-:--' }}
-            </strong>
-          </div>
-          <div>
-            <p class="today-label">Pulang</p>
-            <strong class="today-time" :class="{ 'today-time--set': todayAttendance?.scan_out }">
-              {{ formatTime(todayAttendance?.scan_out) || '-:--' }}
-            </strong>
-          </div>
+          <section class="hero-panel">
+            <div class="hero-person">
+              <div class="employee-avatar" aria-hidden="true">
+                <SecureImage
+                  v-if="employeePhotoUrl"
+                  :src="employeePhotoUrl"
+                  alt="Foto karyawan"
+                />
+                <span v-else>{{ employeeInitials }}</span>
+              </div>
+              <div class="hero-copy">
+                <p class="hero-greeting">{{ greetingLabel }} 👋</p>
+                <h2 class="hero-name">{{ employeeName }}</h2>
+                <!-- <div class="hero-tags">
+                  <span class="hero-tag hero-tag--success">{{ todayStatusLabel }}</span>
+                  <span class="hero-tag hero-tag--soft">{{ employeeNik }}</span>
+                </div> -->
+              </div>
+            </div>
+          </section>
+
+          <section class="today-card">
+            <div class="today-card-head">
+              <p class="today-date">
+                Hari ini <strong>{{ todayDateLabel }}</strong>
+              </p>
+              <p class="today-shift">{{ todayShiftLabel }}</p>
+            </div>
+
+            <div class="today-times">
+              <div class="today-time-item">
+                <span class="today-time-dot today-time-dot--in" />
+                <strong class="today-time" :class="{ 'today-time--set': todayAttendance?.scan_in }">
+                  {{ formatTime(todayAttendance?.scan_in) || '-:--' }}
+                </strong>
+                <span class="today-label">Masuk</span>
+              </div>
+              <div class="today-time-item">
+                <span class="today-time-dot today-time-dot--out" />
+                <strong class="today-time" :class="{ 'today-time--set': todayAttendance?.scan_out }">
+                  {{ formatTime(todayAttendance?.scan_out) || '-:--' }}
+                </strong>
+                <span class="today-label">Pulang</span>
+              </div>
+            </div>
+          </section>
         </section>
 
         <!-- <section class="stats-row">
@@ -172,8 +195,10 @@ import {
 } from 'ionicons/icons'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import SecureImage from '@/components/SecureImage.vue'
 import { showAppAlert } from '@/services/alerts'
 import { BACKEND_LOGO_URL, apiErrorMessage } from '@/services/api'
+import { authState } from '@/services/auth'
 import {
   getStaffAttendance,
   getStaffDashboard,
@@ -223,9 +248,42 @@ const employeeName = computed(() =>
 const employeeNik = computed(() =>
   dashboard.value?.employee.nik || '-',
 )
+const employeePhotoUrl = computed(() =>
+  dashboard.value?.employee.photo_url || authState.user?.photo_url || '',
+)
+const employeeInitials = computed(() => {
+  const words = employeeName.value.trim().split(/\s+/).filter(Boolean)
+  const initials = words.slice(0, 2).map((word) => word.charAt(0)).join('')
+
+  return initials || 'K'
+})
 const todayAttendance = computed(() => {
   const today = dashboard.value?.as_of_date
   return dashboard.value?.weekly_attendance.days.find((day) => day.date === today)
+})
+const todaySchedule = computed(() => {
+  const today = dashboard.value?.as_of_date
+
+  return today ? schedulesByDate.value.get(today) : undefined
+})
+const todayDateLabel = computed(() => {
+  const date = dashboard.value?.as_of_date ? new Date(dashboard.value.as_of_date) : new Date()
+
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(date)
+})
+const todayShiftLabel = computed(() => {
+  const schedule = todaySchedule.value
+  const label = schedule?.schedule_label || schedule?.schedule_code
+  const start = schedule?.schedule_start_time?.slice(0, 5)
+  const end = schedule?.schedule_end_time?.slice(0, 5)
+  const range = start && end ? ` [${start} - ${end}]` : ''
+
+  return label ? `Shift: ${label}${range}` : 'Shift: Belum tersedia'
 })
 
 const todayStatusLabel = computed(() => {
@@ -528,9 +586,43 @@ onUnmounted(() => {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  padding: max(18px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
+  padding: 0 14px max(14px, env(safe-area-inset-bottom));
   gap: 10px;
   overflow: visible;
+}
+
+.header-gradient {
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 -14px 0px;
+  padding: max(18px, env(safe-area-inset-top)) 14px 22px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(191, 219, 254, 0.32) 0 2px, transparent 3px),
+    radial-gradient(circle at 76% 44%, rgba(147, 197, 253, 0.24) 0 1px, transparent 2px),
+    linear-gradient(180deg, #1f4db7 0%, #315fbd 48%, #16223d 100%);
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.32);
+}
+
+.header-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 34%),
+    radial-gradient(circle at 42% 42%, rgba(96, 165, 250, 0.18), transparent 30%),
+    linear-gradient(180deg, transparent 62%, rgba(10, 15, 30, 0.62) 100%);
+}
+
+.header-gradient > * {
+  position: relative;
+  z-index: 1;
 }
 
 .topbar {
@@ -538,8 +630,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  padding: 6px 2px 2px;
-  margin-bottom: 4px;
+  gap: 12px;
+  padding: 2px 0 0;
 }
 
 .brand {
@@ -547,10 +639,25 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   min-width: 0;
-  font-size: 18px;
+  flex: 1 1 auto;
+  max-width: calc(100% - 52px);
+  min-height: 34px;
+  padding: 4px 14px 4px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(14px);
+  font-size: 12px;
   font-weight: 800;
-  color: var(--hris-text-light);
-  letter-spacing: -0.5px;
+  color: #34435f;
+  letter-spacing: 0;
+}
+
+.brand span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .brand-mark {
@@ -566,7 +673,9 @@ onUnmounted(() => {
 }
 
 .brand-logo {
-  width: 36px;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -582,13 +691,14 @@ onUnmounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  border: 1px solid var(--hris-border);
-  background: var(--hris-card-bg);
-  color: var(--hris-text-dark);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(12px);
   cursor: pointer;
 }
 
@@ -606,11 +716,56 @@ onUnmounted(() => {
   border-radius: 999px;
   background: #EF4444;
   color: #fff;
-  border: 2px solid var(--hris-bg);
+  border: 2px solid #315fbd;
   font-size: 10px;
   font-weight: 800;
   line-height: 13px;
   text-align: center;
+}
+
+:root[data-theme="light"] .header-gradient {
+  background:
+    radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.22) 0 2px, transparent 3px),
+    radial-gradient(circle at 76% 44%, rgba(255, 255, 255, 0.18) 0 1px, transparent 2px),
+    linear-gradient(180deg, #315fc7 0%, #7898dd 63%, #eef4ff 100%);
+  box-shadow: 0 18px 36px rgba(37, 99, 235, 0.16);
+}
+
+:root[data-theme="light"] .header-gradient::before {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 42% 42%, rgba(255, 255, 255, 0.14), transparent 28%);
+}
+
+:root[data-theme="light"] .notification-badge {
+  border-color: #7698de;
+}
+
+:root[data-theme="light"] .today-card {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 18px 38px rgba(51, 74, 118, 0.18);
+}
+
+:root[data-theme="light"] .today-date {
+  color: #64748b;
+}
+
+:root[data-theme="light"] .today-date strong {
+  color: #1e293b;
+}
+
+:root[data-theme="light"] .today-shift {
+  color: #64748b;
+}
+
+:root[data-theme="light"] .today-label {
+  color: #64748b;
+}
+
+:root[data-theme="light"] .today-time,
+:root[data-theme="light"] .today-time--set {
+  color: #16A34A;
 }
 
 .theme-toggle {
@@ -633,14 +788,47 @@ onUnmounted(() => {
 .hero-panel {
   flex-shrink: 0;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
-  background: linear-gradient(180deg, #2740a8 0%, #22378f 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 24px;
-  padding: 16px 16px 14px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+  min-height: 78px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 2px 2px 0;
+  box-shadow: none;
+}
+
+.hero-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.employee-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 54px;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+  font-size: 15px;
+  font-weight: 900;
+  text-transform: uppercase;
+  transform: translateY(-6px);
+}
+
+.employee-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .hero-copy {
@@ -650,15 +838,16 @@ onUnmounted(() => {
 .hero-greeting {
   margin: 0;
   font-size: 13px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.84);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .hero-name {
   margin: 6px 0 10px;
-  font-size: 24px;
+  font-size: 23px;
   font-weight: 800;
   color: #fff;
+  text-shadow: 0 2px 12px rgba(15, 23, 42, 0.18);
 }
 
 .hero-tags {
@@ -677,13 +866,13 @@ onUnmounted(() => {
 }
 
 .hero-tag--success {
-  background: rgba(16, 185, 129, 0.18);
-  color: #B7F7D0;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 
 .hero-tag--soft {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .hero-cta {
@@ -710,34 +899,92 @@ onUnmounted(() => {
 .today-card {
   flex-shrink: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: var(--hris-card-bg);
-  border: 1px solid var(--hris-border);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 13px;
+  background: rgba(15, 23, 42, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 18px;
-  padding: 14px 16px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-  margin-bottom: 8px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 18px 38px rgba(2, 6, 23, 0.28);
+  backdrop-filter: blur(16px);
+  margin-bottom: 0;
+}
+
+.today-card-head {
+  min-width: 0;
+}
+
+.today-date {
+  margin: 0;
+  color: #E2E8F0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.today-date strong {
+  color: #fff;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.today-shift {
+  margin: 5px 0 0;
+  color: #CBD5E1;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.today-times {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.today-time-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.today-time-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  flex: 0 0 15px;
+}
+
+.today-time-dot--in {
+  color: #5EEAD4;
+}
+
+.today-time-dot--out {
+  color: #FB7185;
 }
 
 .today-label {
-  margin: 0 0 5px;
-  color: var(--hris-text-secondary);
+  margin: 0;
+  color: #CBD5E1;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 750;
 }
 
 .today-time {
-  display: block;
-  color: #16A34A;
+  display: inline-block;
+  color: #86EFAC;
   font-size: 16px;
   font-weight: 900;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .today-time--set {
-  color: #16A34A;
+  color: #86EFAC;
 }
 
 .today-cta {
@@ -894,11 +1141,10 @@ onUnmounted(() => {
 }
 
 .attendance-panel {
-  flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 25px;
   background: var(--hris-card-bg);
   border: 1px solid var(--hris-border);
   border-radius: 18px;

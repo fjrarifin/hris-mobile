@@ -14,13 +14,26 @@
           </p>
         </section>
 
+        <div class="quick-filter-row" aria-label="Filter cepat absensi">
+          <button
+            v-for="option in quickFilterOptions"
+            :key="option.value"
+            type="button"
+            class="quick-filter-chip"
+            :class="{ 'quick-filter-chip--active': activeFilter === option.value }"
+            @click="selectQuickFilter(option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+
         <section class="filter-card">
           <div class="filter-header">
             <div>
               <span>Filter Tanggal</span>
               <strong>{{ filterLabel }}</strong>
             </div>
-            <ion-button fill="clear" size="small" class="reset-button" @click="resetFilters">
+            <ion-button fill="outline" size="small" class="reset-button" @click="resetFilters">
               Reset
             </ion-button>
           </div>
@@ -28,13 +41,13 @@
           <form class="filter-form" @submit.prevent="loadAttendance()">
             <label class="filter-field">
               <span>Tanggal Awal</span>
-              <input v-model="filters.start_date" type="date" />
+              <input v-model="filters.start_date" type="date" @input="markCustomFilter" />
             </label>
             <label class="filter-field">
               <span>Tanggal Akhir</span>
-              <input v-model="filters.end_date" type="date" />
+              <input v-model="filters.end_date" type="date" @input="markCustomFilter" />
             </label>
-            <ion-button type="submit" expand="block" class="apply-button" :disabled="loading">
+            <ion-button type="submit" fill="outline" expand="block" class="apply-button" :disabled="loading">
               {{ loading ? 'Memuat...' : 'Terapkan Filter' }}
             </ion-button>
           </form>
@@ -128,12 +141,20 @@ const route = useRoute()
 const attendance = ref<StaffAttendanceResponse | null>(null)
 const loading = ref(false)
 const hasLoaded = ref(false)
+type AttendanceQuickFilter = '7d' | '30d' | 'month' | 'custom'
+const activeFilter = ref<AttendanceQuickFilter>('7d')
 const filters = reactive({
   start_date: '',
   end_date: '',
 })
 
 const records = computed<StaffAttendanceRecord[]>(() => attendance.value?.records || [])
+const quickFilterOptions: Array<{ label: string; value: AttendanceQuickFilter }> = [
+  { label: '7 hari', value: '7d' },
+  { label: '30 hari', value: '30d' },
+  { label: 'Bulan ini', value: 'month' },
+  { label: 'Kustom', value: 'custom' },
+]
 
 const filterLabel = computed(() => {
   if (filters.start_date && filters.end_date) {
@@ -159,6 +180,28 @@ function currentMonthRange() {
   return {
     start_date: dateKey(start),
     end_date: dateKey(end),
+  }
+}
+
+function recentDaysRange(days: number) {
+  const now = new Date()
+  const start = new Date(now)
+  start.setDate(now.getDate() - (days - 1))
+
+  return {
+    start_date: dateKey(start),
+    end_date: dateKey(now),
+  }
+}
+
+function rangeForFilter(filter: AttendanceQuickFilter) {
+  if (filter === '7d') return recentDaysRange(7)
+  if (filter === '30d') return recentDaysRange(30)
+  if (filter === 'month') return currentMonthRange()
+
+  return {
+    start_date: filters.start_date,
+    end_date: filters.end_date,
   }
 }
 
@@ -210,7 +253,7 @@ async function loadAttendance(force = false) {
   loading.value = true
 
   try {
-    const fallback = currentMonthRange()
+    const fallback = activeFilter.value === 'custom' ? currentMonthRange() : rangeForFilter(activeFilter.value)
     const start_date = filters.start_date || fallback.start_date
     const end_date = filters.end_date || fallback.end_date
 
@@ -222,7 +265,12 @@ async function loadAttendance(force = false) {
       filters.end_date = end_date
     }
 
-    attendance.value = await getStaffAttendance(start_date, end_date, { force })
+    attendance.value = await getStaffAttendance(start_date, end_date, {
+      force,
+      range: activeFilter.value,
+    })
+    filters.start_date = attendance.value.filters.start_date
+    filters.end_date = attendance.value.filters.end_date
     hasLoaded.value = true
   } catch (error) {
     await showAppAlert({
@@ -236,10 +284,22 @@ async function loadAttendance(force = false) {
 }
 
 function resetFilters() {
-  attendance.value = null
-  hasLoaded.value = false
-  filters.start_date = ''
-  filters.end_date = ''
+  void selectQuickFilter('7d', true)
+}
+
+async function selectQuickFilter(filter: AttendanceQuickFilter, force = false) {
+  activeFilter.value = filter
+
+  if (filter !== 'custom') {
+    const range = rangeForFilter(filter)
+    filters.start_date = range.start_date
+    filters.end_date = range.end_date
+    await loadAttendance(force)
+  }
+}
+
+function markCustomFilter() {
+  activeFilter.value = 'custom'
 }
 
 function applyQueryFilters() {
@@ -252,6 +312,7 @@ function applyQueryFilters() {
 
   filters.start_date = startDate || endDate
   filters.end_date = endDate || startDate
+  activeFilter.value = 'custom'
 
   return true
 }
@@ -280,6 +341,8 @@ async function refresh(event: RefresherCustomEvent) {
 onMounted(() => {
   if (applyQueryFilters()) {
     void loadAttendance()
+  } else {
+    void selectQuickFilter('7d')
   }
 
   window.addEventListener('attendance-submitted', handleAttendanceSubmitted)
@@ -374,6 +437,48 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 
+.quick-filter-row {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.quick-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-filter-chip {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid var(--hris-border);
+  background: var(--hris-card-bg);
+  color: var(--hris-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.quick-filter-chip--active {
+  border-color: var(--ion-color-primary);
+  background: #EFF6FF;
+  color: var(--ion-color-primary);
+}
+
+:root[data-theme="dark"] .quick-filter-chip {
+  background: rgba(255, 255, 255, 0.12);
+  color: #E2E8F0;
+}
+
+:root[data-theme="dark"] .quick-filter-chip--active {
+  border-color: #60A5FA;
+  background: rgba(96, 165, 250, 0.18);
+  color: #93C5FD;
+}
+
 .filter-card,
 .summary-card,
 .attendance-row,
@@ -384,8 +489,8 @@ onUnmounted(() => {
 }
 
 .filter-card {
-  padding: 12px;
-  border-radius: var(--hris-radius-lg);
+  padding: 16px;
+  border-radius: 16px;
 }
 
 .filter-header {
@@ -411,14 +516,24 @@ onUnmounted(() => {
 }
 
 .reset-button {
-  --color: var(--ion-color-primary);
+  min-width: 72px;
+  height: 36px;
+  --border-radius: 8px;
+  --border-color: var(--hris-input-border);
+  --border-style: solid;
+  --border-width: 1px;
+  --color: var(--hris-text-dark);
+  --padding-start: 14px;
+  --padding-end: 14px;
   margin: 0;
+  font-weight: 800;
 }
 
 .filter-form {
   display: grid;
-  gap: 9px;
-  margin-top: 11px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 10px;
+  margin-top: 16px;
 }
 
 .filter-field {
@@ -434,20 +549,29 @@ onUnmounted(() => {
 
 .filter-field input {
   width: 100%;
-  padding: 9px 11px;
+  min-height: 38px;
+  padding: 9px 10px;
   border-radius: 10px;
   border: 1px solid var(--hris-input-border);
   background: var(--hris-input-bg);
   color: var(--hris-text-dark);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .apply-button {
+  grid-column: 1 / -1;
   height: 40px;
   --border-radius: 10px;
-  --background: var(--hris-primary-button-bg);
-  --background-activated: var(--hris-primary-button-bg-active);
+  --background: transparent;
+  --background-activated: var(--hris-soft-surface);
+  --box-shadow: none;
+  --border-color: var(--hris-input-border);
+  --border-style: solid;
+  --border-width: 1px;
+  --color: var(--hris-text-dark);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .summary-grid {

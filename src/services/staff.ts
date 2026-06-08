@@ -152,6 +152,7 @@ export interface StaffAttendanceResponse {
     pin: string | null
   }
   filters: {
+    range?: string
     start_date: string
     end_date: string
   }
@@ -231,10 +232,23 @@ export async function getStaffDashboard(options: { force?: boolean } = {}) {
   return dashboard
 }
 
-export function getStaffAttendance(startDate: string, endDate: string, options: { force?: boolean } = {}) {
+export function getStaffAttendance(
+  startDate: string,
+  endDate: string,
+  options: { force?: boolean; range?: string } = {},
+) {
+  const params = new URLSearchParams()
+
+  if (options.range && options.range !== 'custom') {
+    params.set('range', options.range)
+  } else {
+    params.set('start_date', startDate)
+    params.set('end_date', endDate)
+  }
+
   return cachedApiRequest<StaffAttendanceResponse>(
-    `staff-attendance:${startDate}:${endDate}`,
-    `/staff/attendance?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`,
+    `staff-attendance:${options.range || 'custom'}:${startDate}:${endDate}`,
+    `/staff/attendance?${params.toString()}`,
     {
       ttlMs: TTL.attendance,
       force: options.force,

@@ -27,10 +27,7 @@
 
         <ion-tab-button tab="guide" href="/tabs/guide" class="tab-btn">
           <ion-icon :icon="bookOutline" />
-          <!-- <ion-label class="tab-guide-label">
-            <span>Panduan</span>
-            <small>Aplikasi</small>
-          </ion-label> -->
+          <!-- <ion-label>Panduan</ion-label> -->
         </ion-tab-button>
 
         <ion-tab-button tab="profile" href="/tabs/profile" class="tab-btn">
