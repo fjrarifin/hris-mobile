@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "280459062031",
+    "project_id": "hris-6e16a",
+    "storage_bucket": "hris-6e16a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:280459062031:android:784d6f1ee3b784a0032c7a",
+        "android_client_info": {
+          "package_name": "com.hompimplay.hris"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJfWGRU64Rf2c1KIP14MXtSHDwqxH_WCU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,4 @@
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import App from './App.vue'
 import router from './router';
 
@@ -34,6 +34,8 @@ import '@ionic/vue/css/display.css';
 /* Theme variables */
 import './theme/variables.css';
 import { initTheme } from './services/theme'
+import { authState } from './services/auth'
+import { registerForPushNotifications, setupPushNotifications } from './services/pushNotifications'
 
 const app = createApp(App)
   .use(IonicVue, { mode: 'ios' })
@@ -42,5 +44,11 @@ const app = createApp(App)
 initTheme()
 
 router.isReady().then(() => {
+  void setupPushNotifications(router)
+  watch(
+    () => [authState.token, authState.user?.id],
+    () => { void registerForPushNotifications() },
+    { immediate: true },
+  )
   app.mount('#app');
 });

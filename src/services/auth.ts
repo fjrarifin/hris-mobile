@@ -151,6 +151,8 @@ export async function logoutEmployee() {
 
   try {
     if (token) {
+      const pushNotifications = await import('./pushNotifications')
+      await pushNotifications.unregisterForPushNotifications()
       await apiRequest('/auth/logout', {
         method: 'POST',
         token,
