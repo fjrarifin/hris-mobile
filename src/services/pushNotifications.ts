@@ -13,6 +13,7 @@ import { NOTIFICATIONS_CHANGED_EVENT } from './notifications'
 
 let initialized = false
 let currentToken = ''
+let navigationInProgress = false
 
 export async function setupPushNotifications(router: Router) {
   if (initialized || !Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
@@ -37,16 +38,14 @@ export async function setupPushNotifications(router: Router) {
 
   await PushNotifications.addListener('pushNotificationActionPerformed', (event: ActionPerformed) => {
     const data = event.notification.data || {}
-    const path = data.mobile_path || data.path || '/notifications'
     window.dispatchEvent(new CustomEvent(NOTIFICATIONS_CHANGED_EVENT))
-    void router.push(String(path))
+    void openNotificationPath(router, data)
   })
 
   await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
     const data = event.notification.extra || {}
-    const path = data.mobile_path || data.path || '/notifications'
     window.dispatchEvent(new CustomEvent(NOTIFICATIONS_CHANGED_EVENT))
-    void router.push(String(path))
+    void openNotificationPath(router, data)
   })
 }
 
@@ -124,6 +123,48 @@ async function showForegroundNotification(notification: PushNotificationSchema) 
   } catch (error) {
     console.warn('Foreground local notification failed:', error)
   }
+}
+
+async function openNotificationPath(router: Router, data: Record<string, unknown>) {
+  if (navigationInProgress) {
+    return
+  }
+
+  navigationInProgress = true
+  try {
+    await router.isReady()
+    await router.push(normalizeNotificationPath(data.mobile_path || data.path))
+  } catch (error) {
+    console.warn('Notification navigation failed:', error)
+    try {
+      await router.push('/notifications')
+    } catch {
+      // Keep the app open even when navigation fallback fails.
+    }
+  } finally {
+    setTimeout(() => {
+      navigationInProgress = false
+    }, 500)
+  }
+}
+
+function normalizeNotificationPath(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    return '/notifications'
+  }
+
+  const path = value.trim()
+
+  if (/^https?:\/\//i.test(path)) {
+    try {
+      const url = new URL(path)
+      return `${url.pathname}${url.search}${url.hash}` || '/notifications'
+    } catch {
+      return '/notifications'
+    }
+  }
+
+  return path.startsWith('/') ? path : `/${path}`
 }
 
 export async function unregisterForPushNotifications() {

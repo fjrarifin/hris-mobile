@@ -11,7 +11,7 @@
         <section class="hero-card">
           <span class="hero-eyebrow">Persetujuan Tim</span>
           <h2>{{ pendingCount }} pengajuan menunggu</h2>
-          <p>Proses cuti, PH, extra off, izin, dan sakit dari bawahan langsung Anda.</p>
+          <p>Proses dan pantau riwayat cuti, PH, extra off, izin, dan sakit bawahan langsung Anda.</p>
         </section>
 
         <section class="history-section">
@@ -24,13 +24,15 @@
                 <strong>{{ item.employee_name }}</strong>
                 <small>{{ item.employee_nik }} · {{ approvalTypeLabel(item.type) }}</small>
               </div>
-              <span class="status-pill status-pending">{{ item.label }}</span>
+              <span class="status-pill" :class="requestStatusClass(item.status)">{{ requestStatusLabel(item.status) }}</span>
             </div>
 
+            <strong class="approval-label">{{ item.label }}</strong>
             <p>{{ dateRangeLabel(item) }}</p>
             <small>{{ item.reason || 'Tanpa alasan tambahan.' }}</small>
+            <small v-if="item.reject_reason" class="reject-reason">Alasan: {{ item.reject_reason }}</small>
 
-            <div class="approval-actions">
+            <div v-if="item.can_decide" class="approval-actions">
               <button type="button" class="reject-button" :disabled="processingKey === keyFor(item)" @click="openReject(item)">
                 Tolak
               </button>
@@ -41,7 +43,7 @@
           </article>
 
           <div v-if="!loading && !approvals.length" class="empty-card">
-            Belum ada pengajuan bawahan yang menunggu approval.
+            Belum ada riwayat pengajuan bawahan.
           </div>
         </section>
 
@@ -80,7 +82,7 @@ import {
   type SubordinateApprovalItem,
   type SubordinateApprovalType,
 } from '@/services/requests'
-import { requestDate } from '@/utils/requestFormatters'
+import { requestDate, requestStatusClass, requestStatusLabel } from '@/utils/requestFormatters'
 
 const router = useRouter()
 const approvals = ref<SubordinateApprovalItem[]>([])
@@ -89,7 +91,7 @@ const processingKey = ref('')
 const rejectModalOpen = ref(false)
 const rejectReason = ref('')
 const selectedApproval = ref<SubordinateApprovalItem | null>(null)
-const pendingCount = computed(() => approvals.value.length)
+const pendingCount = computed(() => approvals.value.filter((item) => item.can_decide).length)
 
 function keyFor(item: SubordinateApprovalItem) {
   return `${item.type}-${item.id}`
@@ -212,6 +214,19 @@ onMounted(load)
 
 .approval-actions button:disabled {
   opacity: .6;
+}
+
+.approval-label {
+  display: block;
+  margin-top: 8px;
+  color: var(--hris-text-light);
+  font-size: 13px;
+}
+
+.reject-reason {
+  display: block;
+  margin-top: 6px;
+  color: #FCA5A5;
 }
 
 .approval-modal {

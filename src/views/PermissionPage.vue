@@ -16,7 +16,7 @@
           <h2>Pengajuan Baru</h2>
           <form class="request-form" @submit.prevent="submit">
             <label><span>Jenis Pengajuan</span><select v-model="form.type"><option value="izin">Izin</option><option value="sakit">Sakit</option></select></label>
-            <label><span>Tanggal</span><input v-model="form.date" type="date" required /></label>
+            <label><span>Tanggal</span><input v-model="form.date" type="date" :min="form.type === 'izin' ? todayDate : undefined" required /></label>
             <label v-if="form.type === 'izin'"><span>Alasan</span><textarea v-model="form.reason" rows="3" placeholder="Tuliskan alasan izin" required /></label>
             <div v-else class="document-box">
               <span>Surat Sakit</span>
@@ -71,6 +71,7 @@ const uploadInput = ref<HTMLInputElement | null>(null)
 const cameraInput = ref<HTMLInputElement | null>(null)
 const loading = ref(true)
 const saving = ref(false)
+const todayDate = new Date().toISOString().slice(0, 10)
 
 async function load(force = false) {
   loading.value = true

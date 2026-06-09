@@ -164,11 +164,16 @@ export interface SubordinateApprovalItem {
   end_date: string | null
   reason: string | null
   status: string
+  can_decide?: boolean
+  manager_approved_at?: string | null
+  hr_approved_at?: string | null
+  reject_reason?: string | null
   created_at: string
 }
 
 export interface SubordinateApprovalsResponse {
   requests: SubordinateApprovalItem[]
+  pending_count?: number
 }
 
 const TTL = {
