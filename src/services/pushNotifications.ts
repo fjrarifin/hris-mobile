@@ -95,6 +95,13 @@ export async function unregisterForPushNotifications() {
   }
 }
 
+export function sendTestPushNotification() {
+  return apiRequest<{ message: string; sent: number; registered_tokens: number }>('/notifications/test-push', {
+    method: 'POST',
+    token: authState.token,
+  })
+}
+
 async function registerMobileToken(token: string) {
   if (!authState.token) return
 

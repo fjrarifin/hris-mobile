@@ -48,7 +48,7 @@ function ensureEmployee(payload: SessionPayload) {
 export async function loginEmployee(username: string, password: string) {
   const payload = await apiRequest<SessionPayload>('/auth/login', {
     method: 'POST',
-    body: { username, password },
+    body: { username, password, client: 'mobile' },
   })
 
   if (payload.user.level !== 3) {
@@ -151,8 +151,6 @@ export async function logoutEmployee() {
 
   try {
     if (token) {
-      const pushNotifications = await import('./pushNotifications')
-      await pushNotifications.unregisterForPushNotifications()
       await apiRequest('/auth/logout', {
         method: 'POST',
         token,

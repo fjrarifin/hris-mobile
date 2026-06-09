@@ -62,6 +62,10 @@
                     <ion-icon :icon="callOutline" />
                     Ganti Nomor Telepon
                   </button>
+                  <button type="button" :disabled="testingPush" @click="testPushNotification">
+                    <ion-icon :icon="notificationsOutline" />
+                    Test Push Notification
+                  </button>
                   <button type="button" class="settings-logout" @click="logout">
                     <ion-icon :icon="logOutOutline" />
                     Logout
@@ -261,6 +265,7 @@ import {
   schoolOutline,
   walletOutline,
   moonOutline,
+  notificationsOutline,
   keyOutline,
   settingsOutline,
   sunnyOutline,
@@ -282,6 +287,8 @@ import {
 import { themeMode, toggleTheme } from '@/services/theme'
 import { formatDate } from '@/utils/formatters'
 import { setSecureScreen } from '@/services/secureScreen'
+import { sendTestPushNotification } from '@/services/pushNotifications'
+import { showAppAlert } from '@/services/alerts'
 
 type ProfileField = {
   label: string
@@ -310,6 +317,7 @@ const contactMessage = ref('')
 const contactHasError = ref(false)
 const qrModalOpen = ref(false)
 const qrDataUrl = ref('')
+const testingPush = ref(false)
 
 const selectedNik = computed(() => {
   const nik = route.query.nik
@@ -439,6 +447,19 @@ function toggleThemeMode() {
 async function openChangePassword() {
   settingsOpen.value = false
   await router.push('/change-password')
+}
+
+async function testPushNotification() {
+  settingsOpen.value = false
+  testingPush.value = true
+  try {
+    const response = await sendTestPushNotification()
+    await showAppAlert({ header: 'Test Push', message: response.message, type: response.sent > 0 ? 'success' : 'warning' })
+  } catch (error) {
+    await showAppAlert({ header: 'Test Push Gagal', message: apiErrorMessage(error, 'Push notification tidak dapat dites.'), type: 'danger' })
+  } finally {
+    testingPush.value = false
+  }
 }
 
 function openPhotoPicker() {

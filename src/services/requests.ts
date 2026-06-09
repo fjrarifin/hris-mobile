@@ -152,6 +152,25 @@ export interface OvertimeResponse {
   requests: OvertimeRequestItem[]
 }
 
+export type SubordinateApprovalType = 'leave' | 'ph' | 'extra_off' | 'permission'
+
+export interface SubordinateApprovalItem {
+  id: number
+  type: SubordinateApprovalType
+  employee_nik: string
+  employee_name: string
+  label: string
+  start_date: string | null
+  end_date: string | null
+  reason: string | null
+  status: string
+  created_at: string
+}
+
+export interface SubordinateApprovalsResponse {
+  requests: SubordinateApprovalItem[]
+}
+
 const TTL = {
   requests: 10 * 60 * 1000,
   publicHoliday: 12 * 60 * 60 * 1000,
@@ -352,6 +371,29 @@ export async function deleteOvertime(id: number) {
   })
 
   invalidateCache(['requests-overtime'])
+
+  return response
+}
+
+export function getSubordinateApprovals(options: { force?: boolean } = {}) {
+  return cachedApiRequest<SubordinateApprovalsResponse>('staff-approvals', '/staff/approvals', {
+    ttlMs: TTL.requests,
+    force: options.force,
+  })
+}
+
+export async function decideSubordinateApproval(
+  type: SubordinateApprovalType,
+  id: number,
+  payload: { decision: 'approved' | 'rejected'; reason?: string },
+) {
+  const response = await apiRequest<{ message: string }>(`/staff/approvals/${type}/${id}`, {
+    method: 'POST',
+    token: authState.token,
+    body: payload,
+  })
+
+  invalidateCache(['staff-approvals', 'staff-dashboard'])
 
   return response
 }

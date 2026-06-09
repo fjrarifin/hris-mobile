@@ -285,6 +285,7 @@ import {
   documentTextOutline,
   fingerPrintOutline,
   bookOutline,
+  checkboxOutline,
   layersOutline,
   notificationsOutline,
   personCircleOutline,
@@ -352,7 +353,7 @@ interface CalendarDay {
   code?: string
 }
 
-type QuickActionAccess = 'team_schedules' | 'overtime'
+type QuickActionAccess = 'team_schedules' | 'overtime' | 'approvals'
 
 interface QuickAction {
   label: string
@@ -428,6 +429,7 @@ const quickActions = computed<QuickAction[]>(() => [
   { label: 'PH', hint: 'Hari libur', icon: shieldCheckmarkOutline, path: '/requests/public-holiday', bg: 'rgba(167,139,250,0.12)' },
   { label: 'EO', hint: 'Extra off', icon: calendarOutline, path: '/requests/extra-off', bg: 'rgba(20,184,166,0.12)' },
   { label: 'Izin', hint: 'Ajukan izin', icon: documentTextOutline, path: '/requests/permission?type=izin', bg: 'rgba(251,191,36,0.12)' },
+  { label: 'Approval', hint: 'Setujui tim', icon: checkboxOutline, path: '/team-approvals', bg: 'rgba(34,197,94,0.12)', access: 'approvals' },
   { label: 'Jadwal Tim', hint: 'Shift bawahan', icon: layersOutline, path: '/team-schedules', bg: 'rgba(79,70,229,0.12)', access: 'team_schedules' },
   { label: 'Lembur', hint: 'Ajukan tim', icon: timerOutline, path: '/requests/overtime', bg: 'rgba(124,58,237,0.12)', access: 'overtime' },
   { label: 'Profil', hint: 'Data diri', icon: personCircleOutline, path: '/tabs/profile', bg: 'rgba(148,163,184,0.18)' },
@@ -703,6 +705,7 @@ function finishCalendarSwipe(event: TouchEvent) {
 function hasSupervisorAccess(access?: QuickActionAccess) {
   if (!access) return true
   if (!dashboard.value) return true
+  if (access === 'approvals') return Boolean(dashboard.value.has_subordinates)
   return Boolean(dashboard.value?.supervisor_tools?.[access])
 }
 
@@ -711,6 +714,8 @@ async function showSupervisorAccessAlert(action: QuickAction) {
     header: 'Belum Ada Bawahan',
     message: action.access === 'team_schedules'
       ? 'Menu Jadwal Tim digunakan oleh atasan yang memiliki bawahan langsung atau tidak langsung.'
+      : action.access === 'approvals'
+        ? 'Menu Approval digunakan oleh atasan yang memiliki bawahan.'
       : 'Menu Pengajuan Lembur digunakan oleh atasan yang memiliki bawahan langsung.',
     type: 'warning',
   })
