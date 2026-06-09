@@ -26,6 +26,10 @@ export interface StaffDashboard {
     end: string
   }
   has_subordinates: boolean
+  supervisor_tools?: {
+    team_schedules: boolean
+    overtime: boolean
+  }
   subordinates_today: unknown[]
   pending_subordinate_approvals: unknown[]
   weekly_attendance: {
@@ -44,7 +48,7 @@ export interface StaffDashboard {
 
 export interface StaffProfile {
   user: {
-    id: number
+    id: number | null
     name: string
     username: string
     email: string | null
@@ -103,6 +107,16 @@ export interface StaffProfile {
     join_date?: string | null
     photo_url?: string | null
   }
+  editable?: boolean
+}
+
+export interface StaffEmployeeSearchResult {
+  nik: string
+  name: string
+  position: string | null
+  department: string | null
+  unit: string | null
+  status: string | null
 }
 
 export interface StaffProfileContactResponse {
@@ -258,6 +272,21 @@ export function getStaffAttendance(
 
 export function getStaffProfile(options: { force?: boolean } = {}) {
   return cachedApiRequest<StaffProfile>('staff-profile', '/staff/profile', {
+    ttlMs: TTL.profile,
+    force: options.force,
+  })
+}
+
+export function searchStaffEmployees(query: string) {
+  const params = new URLSearchParams({ q: query })
+
+  return apiRequest<{ records: StaffEmployeeSearchResult[] }>(`/staff/employees/search?${params.toString()}`, {
+    token: authState.token,
+  })
+}
+
+export function getStaffEmployeeProfile(nik: string, options: { force?: boolean } = {}) {
+  return cachedApiRequest<StaffProfile>(`staff-employee-profile:${nik}`, `/staff/employees/${encodeURIComponent(nik)}/profile`, {
     ttlMs: TTL.profile,
     force: options.force,
   })

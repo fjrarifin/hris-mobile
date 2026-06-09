@@ -14,6 +14,14 @@
               <button
                 type="button"
                 class="notification-btn"
+                aria-label="Cari karyawan"
+                @click="openEmployeeSearch"
+              >
+                <ion-icon :icon="searchOutline" />
+              </button>
+              <button
+                type="button"
+                class="notification-btn"
                 aria-label="Buka notifikasi"
                 @click="openNotifications"
               >
@@ -83,14 +91,19 @@
           </article>
         </section> -->
 
-        <div class="section-label">Menu cepat</div>
+        <div class="quick-header">
+          <div class="section-label">Menu cepat</div>
+          <button type="button" class="quick-see-all" @click="quickMenuOpen = true">
+            Lihat Semua ->
+          </button>
+        </div>
         <div class="quick-scroller">
           <button
             v-for="action in quickActions"
             :key="action.label"
             type="button"
             class="quick-item"
-            @click="openFeature(action.path, action.label)"
+            @click="openFeature(action)"
           >
             <span class="quick-icon" :style="{ background: action.bg }">
               <ion-icon :icon="action.icon" />
@@ -171,6 +184,87 @@
           </span>
         </div>
       </main>
+
+      <ion-modal :is-open="quickMenuOpen" class="quick-menu-modal" @didDismiss="closeQuickMenu">
+        <section class="quick-menu-dialog">
+          <header class="quick-menu-head">
+            <div>
+              <span>Menu cepat</span>
+              <h2>Semua Menu</h2>
+            </div>
+            <button type="button" aria-label="Tutup menu cepat" @click="closeQuickMenu">
+              <ion-icon :icon="closeOutline" />
+            </button>
+          </header>
+
+          <div class="quick-menu-grid">
+            <button
+              v-for="action in quickActions"
+              :key="action.label"
+              type="button"
+              class="quick-menu-item"
+              @click="openFeature(action)"
+            >
+              <span class="quick-icon" :style="{ background: action.bg }">
+                <ion-icon :icon="action.icon" />
+              </span>
+              <strong>{{ action.label }}</strong>
+              <small>{{ action.hint }}</small>
+            </button>
+          </div>
+        </section>
+      </ion-modal>
+
+      <ion-modal :is-open="employeeSearchOpen" class="employee-search-modal" @didDismiss="closeEmployeeSearch">
+        <section class="employee-search-shell">
+          <header class="employee-search-header">
+            <button type="button" aria-label="Tutup pencarian" @click="closeEmployeeSearch">
+              <ion-icon :icon="chevronBackOutline" />
+            </button>
+            <label class="employee-search-field">
+              <ion-icon :icon="searchOutline" aria-hidden="true" />
+              <input
+                ref="employeeSearchInput"
+                v-model.trim="employeeSearchQuery"
+                type="search"
+                inputmode="search"
+                autocomplete="off"
+                placeholder="Cari nama karyawan"
+              />
+            </label>
+          </header>
+
+          <div class="employee-search-body">
+            <p v-if="employeeSearchQuery.length < 3" class="employee-search-state">
+              Ketik minimal 3 huruf untuk mencari karyawan.
+            </p>
+            <p v-else-if="employeeSearchLoading" class="employee-search-state">
+              Mencari karyawan...
+            </p>
+            <p v-else-if="employeeSearchError" class="employee-search-state employee-search-state--danger">
+              {{ employeeSearchError }}
+            </p>
+            <p v-else-if="!employeeSearchResults.length" class="employee-search-state">
+              Tidak ada karyawan yang cocok.
+            </p>
+
+            <button
+              v-for="employee in employeeSearchResults"
+              :key="employee.nik"
+              type="button"
+              class="employee-result"
+              @click="openEmployeeProfile(employee.nik)"
+            >
+              <span class="employee-result-avatar">{{ employeeResultInitials(employee.name) }}</span>
+              <span class="employee-result-copy">
+                <strong>{{ employee.name }}</strong>
+                <small>{{ employee.position || 'Karyawan' }} · {{ employee.department || employee.unit || '-' }}</small>
+              </span>
+              <span class="employee-result-nik">{{ employee.nik }}</span>
+            </button>
+          </div>
+        </section>
+      </ion-modal>
     </ion-content>
   </ion-page>
 </template>
@@ -179,6 +273,7 @@
 import {
   IonContent,
   IonIcon,
+  IonModal,
   IonPage,
 } from '@ionic/vue'
 import {
@@ -186,14 +281,18 @@ import {
   calendarOutline,
   chevronBackOutline,
   chevronForwardOutline,
+  closeOutline,
   documentTextOutline,
   fingerPrintOutline,
   bookOutline,
+  layersOutline,
   notificationsOutline,
   personCircleOutline,
+  searchOutline,
   shieldCheckmarkOutline,
+  timerOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import SecureImage from '@/components/SecureImage.vue'
 import { showAppAlert } from '@/services/alerts'
@@ -205,6 +304,8 @@ import {
   type StaffScheduleRecord,
   type StaffAttendanceResponse,
   type StaffDashboard,
+  type StaffEmployeeSearchResult,
+  searchStaffEmployees,
 } from '@/services/staff'
 import { formatTime, weeklyAttendanceLabel } from '@/utils/formatters'
 import {
@@ -219,10 +320,19 @@ const calendarLoading = ref(true)
 const calendarMonth = ref(monthKeyFromDate(new Date()))
 const currentTime = ref(new Date())
 const unreadNotificationTotal = ref(0)
+const quickMenuOpen = ref(false)
+const employeeSearchOpen = ref(false)
+const employeeSearchQuery = ref('')
+const employeeSearchResults = ref<StaffEmployeeSearchResult[]>([])
+const employeeSearchLoading = ref(false)
+const employeeSearchError = ref('')
+const employeeSearchInput = ref<HTMLInputElement | null>(null)
 const backendLogoUrl = BACKEND_LOGO_URL
 let greetingTimer: number | null = null
 let calendarSwipeStartX: number | null = null
 let calendarSwipeStartY: number | null = null
+let employeeSearchTimer: number | null = null
+let employeeSearchRequestId = 0
 
 function handleAttendanceSubmitted() {
   void loadDashboard(true)
@@ -240,6 +350,17 @@ interface CalendarDay {
   schedule?: StaffScheduleRecord | null
   status?: 'present' | 'warning' | 'absent' | 'future' | 'schedule' | 'holiday' | 'leave' | 'permit' | 'sick'
   code?: string
+}
+
+type QuickActionAccess = 'team_schedules' | 'overtime'
+
+interface QuickAction {
+  label: string
+  hint: string
+  icon: string
+  path: string
+  bg: string
+  access?: QuickActionAccess
 }
 
 const employeeName = computed(() =>
@@ -301,12 +422,14 @@ const greetingLabel = computed(() => {
   return 'Selamat malam'
 })
 
-const quickActions = computed(() => [
+const quickActions = computed<QuickAction[]>(() => [
   { label: 'Absensi', hint: 'Riwayat hadir', icon: fingerPrintOutline, path: '/tabs/attendance', bg: 'rgba(59,130,246,0.12)' },
   { label: 'Cuti', hint: 'Ajukan cuti', icon: calendarClearOutline, path: '/requests/leave', bg: 'rgba(34,197,94,0.12)' },
   { label: 'PH', hint: 'Hari libur', icon: shieldCheckmarkOutline, path: '/requests/public-holiday', bg: 'rgba(167,139,250,0.12)' },
   { label: 'EO', hint: 'Extra off', icon: calendarOutline, path: '/requests/extra-off', bg: 'rgba(20,184,166,0.12)' },
   { label: 'Izin', hint: 'Ajukan izin', icon: documentTextOutline, path: '/requests/permission?type=izin', bg: 'rgba(251,191,36,0.12)' },
+  { label: 'Jadwal Tim', hint: 'Shift bawahan', icon: layersOutline, path: '/team-schedules', bg: 'rgba(79,70,229,0.12)', access: 'team_schedules' },
+  { label: 'Lembur', hint: 'Ajukan tim', icon: timerOutline, path: '/requests/overtime', bg: 'rgba(124,58,237,0.12)', access: 'overtime' },
   { label: 'Profil', hint: 'Data diri', icon: personCircleOutline, path: '/tabs/profile', bg: 'rgba(148,163,184,0.18)' },
   { label: 'Panduan', hint: 'Bantuan', icon: bookOutline, path: '/tabs/guide', bg: 'rgba(20,184,166,0.12)' },
 ])
@@ -518,6 +641,42 @@ function openNotifications() {
   router.push('/notifications')
 }
 
+async function openEmployeeSearch() {
+  employeeSearchOpen.value = true
+  await nextTick()
+  window.setTimeout(() => employeeSearchInput.value?.focus(), 180)
+}
+
+function closeEmployeeSearch() {
+  employeeSearchOpen.value = false
+  employeeSearchQuery.value = ''
+  employeeSearchResults.value = []
+  employeeSearchError.value = ''
+}
+
+function closeQuickMenu() {
+  quickMenuOpen.value = false
+}
+
+function employeeResultInitials(name: string) {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word.charAt(0))
+    .join('')
+    .toUpperCase()
+
+  return initials || 'K'
+}
+
+async function openEmployeeProfile(nik: string) {
+  employeeSearchOpen.value = false
+  employeeSearchQuery.value = ''
+  employeeSearchResults.value = []
+  await router.push({ path: '/tabs/profile', query: { nik } })
+}
+
 async function refreshNotificationBadge() {
   unreadNotificationTotal.value = await unreadNotificationCount()
 }
@@ -541,18 +700,75 @@ function finishCalendarSwipe(event: TouchEvent) {
   void changeCalendarMonth(distance < 0 ? 1 : -1)
 }
 
-function openFeature(path: string, label: string) {
-  if (path) {
-    router.push(path)
+function hasSupervisorAccess(access?: QuickActionAccess) {
+  if (!access) return true
+  if (!dashboard.value) return true
+  return Boolean(dashboard.value?.supervisor_tools?.[access])
+}
+
+async function showSupervisorAccessAlert(action: QuickAction) {
+  await showAppAlert({
+    header: 'Belum Ada Bawahan',
+    message: action.access === 'team_schedules'
+      ? 'Menu Jadwal Tim digunakan oleh atasan yang memiliki bawahan langsung atau tidak langsung.'
+      : 'Menu Pengajuan Lembur digunakan oleh atasan yang memiliki bawahan langsung.',
+    type: 'warning',
+  })
+}
+
+function openFeature(action: QuickAction) {
+  quickMenuOpen.value = false
+
+  if (!hasSupervisorAccess(action.access)) {
+    void showSupervisorAccessAlert(action)
+    return
+  }
+
+  if (action.path) {
+    router.push(action.path)
     return
   }
 
   void showAppAlert({
-    header: label,
-    message: `${label} akan tersedia pada pembaruan berikutnya.`,
+    header: action.label,
+    message: `${action.label} akan tersedia pada pembaruan berikutnya.`,
     type: 'info',
   })
 }
+
+watch(employeeSearchQuery, (query) => {
+  employeeSearchError.value = ''
+  const requestId = ++employeeSearchRequestId
+  if (employeeSearchTimer) {
+    window.clearTimeout(employeeSearchTimer)
+    employeeSearchTimer = null
+  }
+
+  if (query.length < 3) {
+    employeeSearchLoading.value = false
+    employeeSearchResults.value = []
+    return
+  }
+
+  employeeSearchLoading.value = true
+  employeeSearchTimer = window.setTimeout(async () => {
+    try {
+      const response = await searchStaffEmployees(query)
+      if (requestId === employeeSearchRequestId) {
+        employeeSearchResults.value = response.records
+      }
+    } catch (error) {
+      if (requestId === employeeSearchRequestId) {
+        employeeSearchError.value = apiErrorMessage(error, 'Pencarian karyawan tidak dapat dimuat.')
+        employeeSearchResults.value = []
+      }
+    } finally {
+      if (requestId === employeeSearchRequestId) {
+        employeeSearchLoading.value = false
+      }
+    }
+  }, 280)
+})
 
 onMounted(() => {
   const updateGreetingTime = () => {
@@ -571,6 +787,10 @@ onUnmounted(() => {
   if (greetingTimer) {
     window.clearInterval(greetingTimer)
     greetingTimer = null
+  }
+  if (employeeSearchTimer) {
+    window.clearTimeout(employeeSearchTimer)
+    employeeSearchTimer = null
   }
   window.removeEventListener('attendance-submitted', handleAttendanceSubmitted)
   window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, refreshNotificationBadge)
@@ -721,6 +941,253 @@ onUnmounted(() => {
   font-weight: 800;
   line-height: 13px;
   text-align: center;
+}
+
+.employee-search-modal {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+}
+
+.quick-menu-modal {
+  --width: min(92vw, 430px);
+  --height: auto;
+  --border-radius: 18px;
+  --box-shadow: 0 24px 60px rgba(2, 6, 23, 0.42);
+}
+
+.quick-menu-dialog {
+  max-height: min(78vh, 640px);
+  overflow: auto;
+  background: var(--hris-card-bg);
+  color: var(--hris-text-dark);
+  border: 1px solid var(--hris-border);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.quick-menu-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.quick-menu-head span {
+  color: var(--ion-color-primary);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.quick-menu-head h2 {
+  margin: 4px 0 0;
+  color: var(--hris-text-light);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.quick-menu-head button {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--hris-border);
+  background: var(--hris-soft-surface);
+  color: var(--hris-text-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quick-menu-head ion-icon {
+  font-size: 19px;
+}
+
+.quick-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quick-menu-item {
+  min-width: 0;
+  min-height: 106px;
+  border-radius: 15px;
+  border: 1px solid var(--hris-border);
+  background: var(--hris-soft-surface);
+  color: var(--hris-text-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 7px;
+  text-align: center;
+}
+
+.quick-menu-item strong,
+.quick-menu-item small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-menu-item strong {
+  color: var(--hris-text-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.quick-menu-item small {
+  color: var(--hris-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.employee-search-shell {
+  min-height: 100%;
+  background: var(--hris-bg);
+  color: var(--hris-text-dark);
+  display: flex;
+  flex-direction: column;
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
+}
+
+.employee-search-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.employee-search-header > button {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--hris-border);
+  background: var(--hris-card-bg);
+  color: var(--hris-text-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.employee-search-header ion-icon {
+  font-size: 20px;
+}
+
+.employee-search-field {
+  min-width: 0;
+  flex: 1;
+  min-height: 42px;
+  border: 1px solid var(--hris-border);
+  border-radius: 999px;
+  background: var(--hris-card-bg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  color: var(--hris-text-secondary);
+}
+
+.employee-search-field input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--hris-text-dark);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.employee-search-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 18px;
+}
+
+.employee-search-state {
+  margin: 20px 4px 0;
+  color: var(--hris-text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.employee-search-state--danger {
+  color: #EF4444;
+}
+
+.employee-result {
+  width: 100%;
+  min-height: 66px;
+  border-radius: 14px;
+  border: 1px solid var(--hris-border);
+  background: var(--hris-card-bg);
+  color: var(--hris-text-dark);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  text-align: left;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.employee-result-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.14);
+  color: var(--ion-color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.employee-result-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employee-result-copy strong,
+.employee-result-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-result-copy strong {
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.employee-result-copy small {
+  color: var(--hris-text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.employee-result-nik {
+  max-width: 86px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--hris-text-secondary);
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
 :root[data-theme="light"] .header-gradient {
@@ -1073,6 +1540,30 @@ onUnmounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.6px;
   margin-bottom: -4px;
+}
+
+.quick-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: -4px;
+}
+
+.quick-header .section-label {
+  margin-bottom: 0;
+}
+
+.quick-see-all {
+  border: 0;
+  background: transparent;
+  color: var(--ion-color-primary);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0;
+  padding: 2px 0;
+  flex-shrink: 0;
 }
 
 .quick-scroller {

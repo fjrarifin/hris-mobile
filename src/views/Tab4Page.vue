@@ -184,9 +184,9 @@ const sections = [
     group: 'Akun & Keamanan',
     color: '#06B6D4',
     bg: '#CFFAFE',
-    note: 'Berakhir otomatis setelah 7 hari tidak digunakan.',
+    note: 'Berakhir otomatis setelah 30 menit tidak digunakan.',
     steps: [
-      'Jika aplikasi tidak dipakai atau tidak dibuka selama 7 hari, Anda perlu login ulang.',
+      'Jika aplikasi tidak dipakai atau tidak dibuka selama 30 menit, Anda perlu login ulang.',
       'Satu akun tidak bisa digunakan bersamaan di banyak perangkat.',
       'Gunakan logout saat selesai memakai aplikasi.',
     ],

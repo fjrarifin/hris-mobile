@@ -76,9 +76,86 @@ export interface PermissionResponse {
   requests: PermissionRequestItem[]
 }
 
+export interface TeamScheduleEmployee {
+  nik: string
+  name: string
+  position: string
+  department: string
+  unit: string
+  relationship: string
+  total_period_days: number
+  scheduled_days: number
+}
+
+export interface TeamScheduleCategory {
+  id: number
+  code: string
+  name: string
+  start_time: string | null
+  end_time: string | null
+  type: string | null
+}
+
+export interface TeamScheduleResponse {
+  filters: {
+    start_date: string
+    end_date: string
+  }
+  supervisor: {
+    nik: string
+    name: string
+    position: string
+  }
+  employees: TeamScheduleEmployee[]
+  categories: TeamScheduleCategory[]
+}
+
+export interface TeamEmployeeScheduleResponse {
+  employee: {
+    nik: string
+    name: string
+    position: string
+    department: string
+  }
+  dates: Array<{
+    date: string
+    code: string
+  }>
+  categories: TeamScheduleCategory[]
+}
+
+export interface OvertimeSubordinate {
+  nik: string
+  nama_karyawan: string
+  jabatan?: string | null
+  departement?: string | null
+}
+
+export interface OvertimeRequestItem {
+  id: number
+  date: string
+  start_time: string
+  end_time: string
+  reason?: string | null
+  status: string
+  user?: {
+    name?: string | null
+    karyawan?: {
+      nama_karyawan?: string | null
+      nik?: string | null
+    } | null
+  } | null
+}
+
+export interface OvertimeResponse {
+  subordinates: OvertimeSubordinate[]
+  requests: OvertimeRequestItem[]
+}
+
 const TTL = {
   requests: 10 * 60 * 1000,
   publicHoliday: 12 * 60 * 60 * 1000,
+  teamSchedule: 5 * 60 * 1000,
 }
 
 export function getLeaves(options: { force?: boolean } = {}) {
@@ -202,6 +279,79 @@ export async function deletePermission(id: number) {
   })
 
   invalidateCache(['requests-permission', 'staff-dashboard'])
+
+  return response
+}
+
+export function getTeamSchedules(startDate: string, endDate: string, options: { force?: boolean } = {}) {
+  const params = new URLSearchParams({ start_date: startDate, end_date: endDate })
+
+  return cachedApiRequest<TeamScheduleResponse>(`team-schedules:${startDate}:${endDate}`, `/staff/team-schedules?${params.toString()}`, {
+    ttlMs: TTL.teamSchedule,
+    force: options.force,
+  })
+}
+
+export function getTeamEmployeeSchedule(nik: string, startDate: string, endDate: string, options: { force?: boolean } = {}) {
+  const params = new URLSearchParams({ start_date: startDate, end_date: endDate })
+
+  return cachedApiRequest<TeamEmployeeScheduleResponse>(
+    `team-schedules:${nik}:${startDate}:${endDate}`,
+    `/staff/team-schedules/employees/${encodeURIComponent(nik)}?${params.toString()}`,
+    {
+      ttlMs: TTL.teamSchedule,
+      force: options.force,
+    },
+  )
+}
+
+export async function saveTeamEmployeeSchedule(nik: string, payload: { start_date: string; end_date: string; schedules: Array<{ date: string; code: string }> }) {
+  const response = await apiRequest<{ message: string }>(`/staff/team-schedules/employees/${encodeURIComponent(nik)}`, {
+    method: 'PUT',
+    token: authState.token,
+    body: payload,
+  })
+
+  invalidateCache([
+    `team-schedules:${payload.start_date}:${payload.end_date}`,
+    `team-schedules:${nik}:${payload.start_date}:${payload.end_date}`,
+  ])
+
+  return response
+}
+
+export function getOvertime(options: { force?: boolean } = {}) {
+  return cachedApiRequest<OvertimeResponse>('requests-overtime', '/staff/overtime', {
+    ttlMs: TTL.requests,
+    force: options.force,
+  })
+}
+
+export async function createOvertime(payload: {
+  employee_niks: string[]
+  date: string
+  start_time: string
+  end_time: string
+  reason: string
+}) {
+  const response = await apiRequest<{ message: string }>('/staff/overtime', {
+    method: 'POST',
+    token: authState.token,
+    body: payload,
+  })
+
+  invalidateCache(['requests-overtime'])
+
+  return response
+}
+
+export async function deleteOvertime(id: number) {
+  const response = await apiRequest<{ message: string }>(`/staff/overtime/${id}`, {
+    method: 'DELETE',
+    token: authState.token,
+  })
+
+  invalidateCache(['requests-overtime'])
 
   return response
 }

@@ -30,7 +30,7 @@
           <!-- <ion-label>Panduan</ion-label> -->
         </ion-tab-button>
 
-        <ion-tab-button tab="profile" href="/tabs/profile" class="tab-btn">
+        <ion-tab-button tab="profile" href="/tabs/profile" class="tab-btn" @click="openOwnProfile">
           <span class="tab-profile-avatar">
             <SecureImage v-if="profilePhoto" :src="profilePhoto" alt="Foto profil" />
             <span v-else class="tab-profile-initials">{{ profileInitials }}</span>
@@ -163,6 +163,7 @@ import {
   checkmarkCircleOutline,
 } from 'ionicons/icons'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import SecureImage from '@/components/SecureImage.vue'
 import { getStaffDashboard } from '@/services/staff'
 import { apiErrorMessage } from '@/services/api'
@@ -171,6 +172,8 @@ import { authState } from '@/services/auth'
 import { saveSelfAttendanceLog, getSelfAttendanceLogs, saveSelfAttendanceToBackend } from '@/services/attendance'
 
 const showModal = ref(false)
+const router = useRouter()
+const route = useRoute()
 const cameraActive = ref(false)
 const cameraError = ref('')
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -200,6 +203,12 @@ const profileInitials = computed(() =>
 )
 
 let clockInterval: any = null
+
+function openOwnProfile() {
+  if (route.path === '/tabs/profile' && route.query.nik) {
+    void router.replace({ path: '/tabs/profile' })
+  }
+}
 
 function startClock() {
   const updateClock = () => {

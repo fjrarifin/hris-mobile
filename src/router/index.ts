@@ -49,6 +49,16 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/requests/overtime',
+    component: () => import('@/views/OvertimePage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/team-schedules',
+    component: () => import('@/views/TeamSchedulePage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/tabs/',
     component: TabsPage,
     meta: { requiresAuth: true },

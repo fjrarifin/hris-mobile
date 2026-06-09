@@ -31,11 +31,12 @@
                 type="button"
                 class="theme-toggle theme-toggle--hero profile-qr-button"
                 aria-label="Tampilkan QR karyawan"
+                v-if="canEditProfile"
                 @click="openQrModal"
               >
                 <ion-icon :icon="qrCodeOutline" />
               </button>
-              <div class="settings-wrap">
+              <div v-if="canEditProfile" class="settings-wrap">
                 <button
                   type="button"
                   class="theme-toggle theme-toggle--hero"
@@ -124,7 +125,7 @@
           </section>
 
           <!-- Kontak & Pribadi -->
-          <section class="profile-section">
+          <section v-if="canEditProfile" class="profile-section">
             <h2>Kontak & Pribadi</h2>
             <div class="info-group">
               <article v-for="item in personalFields" :key="item.label" class="info-row">
@@ -140,7 +141,7 @@
           </section>
 
           <!-- Keluarga & Payroll -->
-          <section class="profile-section">
+          <section v-if="canEditProfile" class="profile-section">
             <h2>Keluarga & Payroll</h2>
             <div class="info-group">
               <article v-for="item in familyAndPayrollFields" :key="item.label" class="info-row">
@@ -265,12 +266,13 @@ import {
   sunnyOutline,
 } from 'ionicons/icons'
 import QRCode from 'qrcode'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import SecureImage from '@/components/SecureImage.vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { apiErrorMessage } from '@/services/api'
 import { authState, logoutEmployee, updateEmployeePhoto } from '@/services/auth'
 import {
+  getStaffEmployeeProfile,
   getStaffProfile,
   requestStaffProfilePhoneOtp,
   updateStaffProfileContact,
@@ -279,6 +281,7 @@ import {
 } from '@/services/staff'
 import { themeMode, toggleTheme } from '@/services/theme'
 import { formatDate } from '@/utils/formatters'
+import { setSecureScreen } from '@/services/secureScreen'
 
 type ProfileField = {
   label: string
@@ -287,6 +290,7 @@ type ProfileField = {
 }
 
 const router = useRouter()
+const route = useRoute()
 const profile = ref<StaffProfile | null>(null)
 const loading = ref(false)
 const errorMessage = ref('')
@@ -307,6 +311,16 @@ const contactHasError = ref(false)
 const qrModalOpen = ref(false)
 const qrDataUrl = ref('')
 
+const selectedNik = computed(() => {
+  const nik = route.query.nik
+  return typeof nik === 'string' && nik.trim() ? nik.trim() : ''
+})
+const canEditProfile = computed(
+  () => profile.value?.editable !== false && (!selectedNik.value || selectedNik.value === authState.user?.username),
+)
+const shouldSecureScreen = computed(
+  () => Boolean(selectedNik.value && selectedNik.value !== authState.user?.username),
+)
 const employee = computed(() => profile.value?.employee)
 const profileName = computed(
   () => employee.value?.nama_karyawan || employee.value?.name || authState.user?.name || 'Karyawan',
@@ -316,7 +330,7 @@ const positionLabel = computed(
   () => employee.value?.jabatan || employee.value?.posisi || authState.user?.position || 'Karyawan',
 )
 const departmentLabel = computed(() => employee.value?.departement || employee.value?.divisi || '-')
-const photoUrl = computed(() => profile.value?.user?.photo_url || authState.user?.photo_url)
+const photoUrl = computed(() => profile.value?.user?.photo_url || (canEditProfile.value ? authState.user?.photo_url : ''))
 const initials = computed(() =>
   profileName.value
     .split(' ')
@@ -357,7 +371,6 @@ const workFields = computed<ProfileField[]>(() => [
   { label: 'Unit', value: employee.value?.unit, icon: layersOutline },
   { label: 'Atasan Langsung', value: employee.value?.nama_atasan_langsung, icon: personOutline },
   { label: 'Atasan Tidak Langsung', value: employee.value?.atasan_tidak_langsung, icon: gitNetworkOutline },
-  { label: 'Tanggal Bergabung', value: joinDateLabel.value, icon: calendarOutline },
 ])
 
 const personalFields = computed<ProfileField[]>(() => [
@@ -392,7 +405,9 @@ async function loadProfile(force = false) {
   loading.value = true
   errorMessage.value = ''
   try {
-    profile.value = await getStaffProfile({ force })
+    profile.value = selectedNik.value
+      ? await getStaffEmployeeProfile(selectedNik.value, { force })
+      : await getStaffProfile({ force })
   } catch (error) {
     errorMessage.value = apiErrorMessage(error, 'Profil tidak dapat dimuat.')
   } finally {
@@ -610,7 +625,14 @@ async function savePhone() {
 }
 
 onMounted(loadProfile)
+watch(selectedNik, () => {
+  void loadProfile()
+})
+watch(shouldSecureScreen, (enabled) => {
+  void setSecureScreen(enabled)
+}, { immediate: true })
 onUnmounted(() => {
+  void setSecureScreen(false)
   if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
 })
 </script>
@@ -861,46 +883,58 @@ onUnmounted(() => {
 .profile-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
   margin: -24px 14px 0;
   position: relative;
   z-index: 1;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--hris-card-bg);
+  border: 1px solid var(--hris-border);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.12);
 }
 
 .metric-card {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 72px;
   text-align: center;
   padding: 14px 8px 12px;
-  border-radius: 16px;
-  background: var(--hris-card-bg);
-  border: 1px solid var(--hris-border);
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.1);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.metric-card + .metric-card {
+  border-left: 1px solid var(--hris-border);
 }
 
 .metric-card ion-icon {
-  font-size: 20px;
-  color: var(--ion-color-primary);
-  margin-bottom: 6px;
+  display: none;
 }
 
 .metric-card strong {
   display: block;
+  max-width: 100%;
   color: var(--hris-text-dark);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 800;
   line-height: 1.2;
-  margin-bottom: 3px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .metric-card span {
   display: block;
   color: var(--hris-text-secondary);
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 9px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
 }
 
 /* ── Sections ── */
