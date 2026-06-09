@@ -1,6 +1,8 @@
 import { Capacitor } from '@capacitor/core'
+import { LocalNotifications } from '@capacitor/local-notifications'
 import {
   type ActionPerformed,
+  type PushNotificationSchema,
   PushNotifications,
   type Token,
 } from '@capacitor/push-notifications'
@@ -28,12 +30,20 @@ export async function setupPushNotifications(router: Router) {
     console.warn('Push registration error:', error)
   })
 
-  await PushNotifications.addListener('pushNotificationReceived', () => {
+  await PushNotifications.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
     window.dispatchEvent(new CustomEvent(NOTIFICATIONS_CHANGED_EVENT))
+    void showForegroundNotification(notification)
   })
 
   await PushNotifications.addListener('pushNotificationActionPerformed', (event: ActionPerformed) => {
     const data = event.notification.data || {}
+    const path = data.mobile_path || data.path || '/notifications'
+    window.dispatchEvent(new CustomEvent(NOTIFICATIONS_CHANGED_EVENT))
+    void router.push(String(path))
+  })
+
+  await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
+    const data = event.notification.extra || {}
     const path = data.mobile_path || data.path || '/notifications'
     window.dispatchEvent(new CustomEvent(NOTIFICATIONS_CHANGED_EVENT))
     void router.push(String(path))
@@ -56,6 +66,16 @@ export async function registerForPushNotifications() {
       vibration: true,
     })
 
+    await LocalNotifications.createChannel({
+      id: 'hris_requests',
+      name: 'HRIS Pengajuan',
+      description: 'Notifikasi pengajuan, approval, dan status HRIS.',
+      importance: 5,
+      visibility: 1,
+      lights: true,
+      vibration: true,
+    })
+
     let permission = await PushNotifications.checkPermissions()
 
     if (permission.receive !== 'granted') {
@@ -66,6 +86,11 @@ export async function registerForPushNotifications() {
       return
     }
 
+    const localPermission = await LocalNotifications.checkPermissions()
+    if (localPermission.display !== 'granted') {
+      await LocalNotifications.requestPermissions()
+    }
+
     await PushNotifications.register()
 
     if (currentToken) {
@@ -73,6 +98,31 @@ export async function registerForPushNotifications() {
     }
   } catch (error) {
     console.warn('Push notification setup failed:', error)
+  }
+}
+
+async function showForegroundNotification(notification: PushNotificationSchema) {
+  const title = notification.title || notification.data?.title || 'Notifikasi HRIS'
+  const body = notification.body || notification.data?.message || ''
+
+  if (!title && !body) {
+    return
+  }
+
+  try {
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: Date.now() % 2147483647,
+          title: String(title),
+          body: String(body),
+          channelId: 'hris_requests',
+          extra: notification.data || {},
+        },
+      ],
+    })
+  } catch (error) {
+    console.warn('Foreground local notification failed:', error)
   }
 }
 
