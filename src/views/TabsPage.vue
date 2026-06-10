@@ -155,9 +155,9 @@
       </div>
     </ion-modal>
 
-    <!-- Profile Actions Modal -->
-    <ion-modal :is-open="profileActionsOpen" @didDismiss="closeProfileActions" class="profile-actions-modal">
-      <div class="profile-actions-panel">
+    <!-- Profile Actions Dialog -->
+    <div v-if="profileActionsOpen" class="profile-actions-overlay" @click="closeProfileActions">
+      <div class="profile-actions-panel" @click.stop>
         <div class="profile-actions-header">
           <span class="profile-actions-avatar">
             <SecureImage v-if="profilePhoto" :src="profilePhoto" alt="Foto profil" />
@@ -187,7 +187,7 @@
           </button>
         </div>
       </div>
-    </ion-modal>
+    </div>
   </ion-page>
 </template>
 
@@ -212,7 +212,7 @@ import {
   logOutOutline,
   personCircleOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SecureImage from '@/components/SecureImage.vue'
 import { getStaffDashboard } from '@/services/staff'
@@ -297,6 +297,8 @@ function handleProfileTabClick(event: Event) {
 }
 
 function closeProfileActions() {
+  clearProfileHoldTimer()
+  suppressProfileClickAfterHold = false
   profileActionsOpen.value = false
 }
 
@@ -522,7 +524,12 @@ onMounted(() => {
   window.addEventListener('open-self-attendance', openSelfAttendance)
 })
 
+watch(() => route.fullPath, () => {
+  closeProfileActions()
+})
+
 onUnmounted(() => {
+  closeProfileActions()
   clearProfileHoldTimer()
   window.removeEventListener('open-self-attendance', openSelfAttendance)
 })
@@ -683,14 +690,19 @@ async function takeSelfieAndAbsen() {
   color: var(--hris-text-dark);
 }
 
-.profile-actions-modal {
-  --width: min(92vw, 430px);
-  --height: auto;
-  --border-radius: 18px;
-  --box-shadow: 0 24px 60px rgba(2, 6, 23, 0.42);
+.profile-actions-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(2, 6, 23, 0.42);
 }
 
 .profile-actions-panel {
+  width: min(92vw, 430px);
   max-height: min(78vh, 640px);
   overflow: auto;
   background: var(--hris-card-bg);
@@ -698,6 +710,7 @@ async function takeSelfieAndAbsen() {
   border: 1px solid var(--hris-border);
   border-radius: 18px;
   padding: 14px;
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.42);
 }
 
 .profile-actions-header {
