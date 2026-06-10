@@ -67,6 +67,8 @@ export interface PermissionRequestItem {
   id: number
   type: 'izin' | 'sakit'
   date: string
+  start_date?: string
+  end_date?: string
   reason: string | null
   document_url?: string | null
   status: string

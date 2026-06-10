@@ -281,6 +281,15 @@ async function openSelfAttendance() {
     return
   }
 
+  if (await recentlyCheckedIn()) {
+    void showAppAlert({
+      header: 'Absen Masuk Sudah Tercatat',
+      message: 'Silakan tunggu minimal 5 menit setelah absen masuk sebelum melakukan absen pulang.',
+      type: 'warning',
+    })
+    return
+  }
+
   showModal.value = true
   cameraActive.value = false
   cameraError.value = ''
@@ -294,6 +303,47 @@ async function openSelfAttendance() {
   getGPSLocation()
   determineAttendanceType()
   setTimeout(startCamera, 400)
+}
+
+async function recentlyCheckedIn() {
+  const today = new Date().toISOString().slice(0, 10)
+  const now = Date.now()
+  const fiveMinutes = 5 * 60 * 1000
+  const localLogs = getSelfAttendanceLogs()
+    .filter((log) => log.date === today)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+
+  if (localLogs.length === 1 && now - new Date(localLogs[0].timestamp).getTime() < fiveMinutes) {
+    return true
+  }
+
+  try {
+    const dashboard = await getStaffDashboard({ force: true })
+    const todayEntry = dashboard.weekly_attendance.days.find((day) => day.date === today)
+
+    if (!todayEntry?.scan_in || todayEntry.scan_out) {
+      return false
+    }
+
+    const scanInAt = todayScanTime(todayEntry.scan_in)
+
+    return scanInAt !== null && now - scanInAt.getTime() < fiveMinutes
+  } catch {
+    return false
+  }
+}
+
+function todayScanTime(value: string) {
+  const match = value.match(/^(\d{2}):(\d{2})(?::(\d{2}))?/)
+
+  if (!match) {
+    return null
+  }
+
+  const date = new Date()
+  date.setHours(Number(match[1]), Number(match[2]), Number(match[3] || 0), 0)
+
+  return date
 }
 
 async function determineAttendanceType() {

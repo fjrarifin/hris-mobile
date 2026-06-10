@@ -69,12 +69,13 @@
 
         <section v-if="scheduleCategories.length" class="history-section">
           <h2>Panduan Kode</h2>
-          <article v-for="category in scheduleCategories" :key="category.code" class="history-card code-card">
-            <div class="history-top">
-              <strong>{{ category.code }} - {{ category.name }}</strong>
-            </div>
-            <p>{{ scheduleTime(category) }}</p>
-          </article>
+          <div class="code-grid">
+            <article v-for="category in scheduleCategories" :key="category.code" class="history-card code-card">
+              <strong>{{ category.code }}</strong>
+              <span>{{ category.name }}</span>
+              <p>{{ scheduleTime(category) }}</p>
+            </article>
+          </div>
         </section>
       </main>
     </ion-content>
@@ -210,6 +211,42 @@ onMounted(loadTeam)
 }
 
 .code-card {
+  display: grid;
+  gap: 3px;
+  min-height: 78px;
+  padding: 10px;
   box-shadow: none;
+}
+
+.code-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.code-card strong {
+  color: var(--hris-text-light);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.code-card span {
+  color: var(--hris-text-dark);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.code-card p {
+  margin: 0;
+  color: var(--hris-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 420px) {
+  .code-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>

@@ -78,6 +78,11 @@
               </button>
             </div>
 
+            <label class="remember-row">
+              <input v-model="rememberUsername" type="checkbox" />
+              <span>Ingat NIK saya</span>
+            </label>
+
             <!-- Submit -->
             <ion-button
               expand="block"
@@ -135,7 +140,7 @@ import {
   lockClosedOutline,
   logoWhatsapp,
 } from 'ionicons/icons'
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showAppAlert } from '@/services/alerts'
 import { ApiRequestError, BACKEND_LOGO_URL, apiErrorMessage, isApiRequestError } from '@/services/api'
@@ -150,6 +155,8 @@ const errorMessage = ref('')
 const showPassword = ref(false)
 const nikFocus = ref(false)
 const pwFocus  = ref(false)
+const rememberUsername = ref(false)
+const REMEMBER_USERNAME_KEY = 'hris_mobile_remember_username'
 
 /* ── Active session message ──────────────────────────── */
 function formatSessionTime(value?: string | null) {
@@ -192,6 +199,12 @@ async function submit() {
   try {
     await loginEmployee(form.username, form.password)
 
+    if (rememberUsername.value) {
+      localStorage.setItem(REMEMBER_USERNAME_KEY, form.username)
+    } else {
+      localStorage.removeItem(REMEMBER_USERNAME_KEY)
+    }
+
     await router.replace('/tabs/home')
 
   } catch (error) {
@@ -229,6 +242,15 @@ async function submit() {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  const rememberedUsername = localStorage.getItem(REMEMBER_USERNAME_KEY) || ''
+
+  if (rememberedUsername) {
+    form.username = rememberedUsername
+    rememberUsername.value = true
+  }
+})
 </script>
 
 <style scoped>
@@ -423,6 +445,22 @@ async function submit() {
 
 .field--focus .field-icon { color: #6366F1; }
 .field--error .field-icon { color: #F87171; }
+
+.remember-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: #3730A3;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.remember-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1E3A8A;
+}
 
 .field-inner {
   flex: 1;

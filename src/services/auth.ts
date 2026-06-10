@@ -146,6 +146,22 @@ export async function restoreSession() {
   }
 }
 
+export async function refreshSession() {
+  if (!authState.token) {
+    return null
+  }
+
+  const payload = await apiRequest<SessionPayload>('/auth/me', {
+    token: authState.token,
+  })
+
+  ensureEmployee(payload)
+  applySession(payload)
+  authState.initialized = true
+
+  return payload
+}
+
 export async function logoutEmployee() {
   const token = authState.token
 

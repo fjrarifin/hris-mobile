@@ -16,7 +16,10 @@
           <h2>Pengajuan Baru</h2>
           <form class="request-form" @submit.prevent="submit">
             <label><span>Jenis Pengajuan</span><select v-model="form.type"><option value="izin">Izin</option><option value="sakit">Sakit</option></select></label>
-            <label><span>Tanggal</span><input v-model="form.date" type="date" :min="form.type === 'izin' ? todayDate : undefined" required /></label>
+            <div class="field-grid">
+              <label><span>Dari Tanggal</span><input v-model="form.start_date" type="date" :min="form.type === 'izin' ? todayDate : undefined" required /></label>
+              <label><span>Sampai Tanggal</span><input v-model="form.end_date" type="date" :min="form.start_date || (form.type === 'izin' ? todayDate : undefined)" required /></label>
+            </div>
             <label v-if="form.type === 'izin'"><span>Alasan</span><textarea v-model="form.reason" rows="3" placeholder="Tuliskan alasan izin" required /></label>
             <div v-else class="document-box">
               <span>Surat Sakit</span>
@@ -40,7 +43,7 @@
               <strong>{{ item.type === 'sakit' ? 'Sakit' : 'Izin' }}</strong>
               <span class="status-pill" :class="requestStatusClass(item.status)">{{ requestStatusLabel(item.status) }}</span>
             </div>
-            <p>{{ requestDate(item.date) }}</p>
+            <p>{{ permissionDateLabel(item) }}</p>
             <a v-if="item.document_url" :href="item.document_url" target="_blank" rel="noopener">Lihat dokumen</a>
             <small v-else>{{ item.reason || '-' }}</small>
             <button v-if="item.status === 'pending'" type="button" class="cancel-button" @click="remove(item.id)">Batalkan pengajuan</button>
@@ -66,7 +69,7 @@ import { requestDate, requestStatusClass, requestStatusLabel } from '@/utils/req
 const router = useRouter()
 const route = useRoute()
 const requests = ref<PermissionRequestItem[]>([])
-const form = reactive<{ type: 'izin' | 'sakit'; date: string; reason: string; document: File | null }>({ type: 'izin', date: '', reason: '', document: null })
+const form = reactive<{ type: 'izin' | 'sakit'; start_date: string; end_date: string; reason: string; document: File | null }>({ type: 'izin', start_date: '', end_date: '', reason: '', document: null })
 const uploadInput = ref<HTMLInputElement | null>(null)
 const cameraInput = ref<HTMLInputElement | null>(null)
 const loading = ref(true)
@@ -89,18 +92,30 @@ async function submit() {
     await showAppAlert({ header: 'Surat Sakit Diperlukan', message: 'Upload file atau ambil foto surat sakit terlebih dahulu.', type: 'warning' }); return
   }
   const payload = new FormData()
-  payload.append('type', form.type); payload.append('date', form.date); payload.append('reason', form.reason)
+  payload.append('type', form.type)
+  payload.append('start_date', form.start_date)
+  payload.append('end_date', form.end_date || form.start_date)
+  payload.append('reason', form.reason)
   if (form.document) payload.append('document', form.document)
   saving.value = true
   try {
     const response = await createPermission(payload)
-    form.date = ''; form.reason = ''; form.document = null
+    form.start_date = ''; form.end_date = ''; form.reason = ''; form.document = null
     if (uploadInput.value) uploadInput.value.value = ''
     if (cameraInput.value) cameraInput.value.value = ''
     await load(true)
     await showAppAlert({ header: 'Pengajuan Terkirim', message: response.message, type: 'success' })
   } catch (error) { await showAppAlert({ header: 'Pengajuan Gagal', message: apiErrorMessage(error), type: 'danger' }) }
   finally { saving.value = false }
+}
+
+function permissionDateLabel(item: PermissionRequestItem) {
+  const startValue = item.start_date || item.date
+  const endValue = item.end_date || item.date
+  const start = requestDate(startValue)
+  const end = requestDate(endValue)
+
+  return endValue && endValue !== startValue ? `${start} - ${end}` : start
 }
 
 async function remove(id: number) {

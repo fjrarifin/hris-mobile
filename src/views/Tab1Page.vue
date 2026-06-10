@@ -1,6 +1,23 @@
 <template>
   <ion-page>
     <ion-content fullscreen class="dash-page" :scroll-y="true">
+      <ion-refresher slot="fixed" @ionRefresh="refreshHome" :pull-min="60">
+        <ion-refresher-content
+          pulling-icon="none"
+          :refreshing-spinner="null"
+        >
+          <template #default>
+            <div class="refresh-pill-wrap">
+              <div class="refresh-pill">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="refresh-pill-text">Memperbarui...</span>
+              </div>
+            </div>
+          </template>
+        </ion-refresher-content>
+      </ion-refresher>
       <main class="dash-shell">
         <section class="header-gradient">
           <header class="topbar">
@@ -8,7 +25,7 @@
               <img class="brand-logo" :src="BACKEND_LOGO_URL" alt="HomPimPlay" />
               <!-- <div class="brand-mark">
               </div> -->
-              <span>HomPim Play</span>
+              <span>HomPim Play | CV. 3 Detik</span>
             </div>
             <div class="topbar-actions">
               <button
@@ -275,7 +292,10 @@ import {
   IonIcon,
   IonModal,
   IonPage,
+  IonRefresher,
+  IonRefresherContent,
 } from '@ionic/vue'
+import type { RefresherCustomEvent } from '@ionic/vue'
 import {
   calendarClearOutline,
   calendarOutline,
@@ -288,6 +308,7 @@ import {
   checkboxOutline,
   layersOutline,
   notificationsOutline,
+  peopleOutline,
   personCircleOutline,
   searchOutline,
   shieldCheckmarkOutline,
@@ -298,7 +319,7 @@ import { useRouter } from 'vue-router'
 import SecureImage from '@/components/SecureImage.vue'
 import { showAppAlert } from '@/services/alerts'
 import { BACKEND_LOGO_URL, apiErrorMessage } from '@/services/api'
-import { authState } from '@/services/auth'
+import { authState, refreshSession } from '@/services/auth'
 import {
   getStaffAttendance,
   getStaffDashboard,
@@ -353,7 +374,7 @@ interface CalendarDay {
   code?: string
 }
 
-type QuickActionAccess = 'team_schedules' | 'overtime' | 'approvals'
+type QuickActionAccess = 'team_schedules' | 'overtime' | 'approvals' | 'subordinates'
 
 interface QuickAction {
   label: string
@@ -429,6 +450,7 @@ const quickActions = computed<QuickAction[]>(() => [
   { label: 'PH', hint: 'Hari libur', icon: shieldCheckmarkOutline, path: '/requests/public-holiday', bg: 'rgba(167,139,250,0.12)' },
   { label: 'EO', hint: 'Extra off', icon: calendarOutline, path: '/requests/extra-off', bg: 'rgba(20,184,166,0.12)' },
   { label: 'Izin', hint: 'Ajukan izin', icon: documentTextOutline, path: '/requests/permission?type=izin', bg: 'rgba(251,191,36,0.12)' },
+  { label: 'Tim Saya', hint: 'Status bawahan', icon: peopleOutline, path: '/team-today', bg: 'rgba(14,165,233,0.12)', access: 'subordinates' },
   { label: 'Approval', hint: 'Setujui tim', icon: checkboxOutline, path: '/team-approvals', bg: 'rgba(34,197,94,0.12)', access: 'approvals' },
   { label: 'Jadwal Tim', hint: 'Shift bawahan', icon: layersOutline, path: '/team-schedules', bg: 'rgba(79,70,229,0.12)', access: 'team_schedules' },
   { label: 'Lembur', hint: 'Ajukan tim', icon: timerOutline, path: '/requests/overtime', bg: 'rgba(124,58,237,0.12)', access: 'overtime' },
@@ -617,6 +639,22 @@ async function loadDashboard(force = false) {
   }
 }
 
+async function refreshHome(event: RefresherCustomEvent) {
+  try {
+    await refreshSession()
+    await loadDashboard(true)
+    await refreshNotificationBadge()
+  } catch (error) {
+    await showAppAlert({
+      header: 'Refresh Gagal',
+      message: apiErrorMessage(error, 'Data terbaru tidak dapat dimuat.'),
+      type: 'danger',
+    })
+  } finally {
+    event.target.complete()
+  }
+}
+
 async function showBirthdayGreeting() {
   if (!dashboard.value?.employee.is_birthday_today) return
 
@@ -705,7 +743,7 @@ function finishCalendarSwipe(event: TouchEvent) {
 function hasSupervisorAccess(access?: QuickActionAccess) {
   if (!access) return true
   if (!dashboard.value) return true
-  if (access === 'approvals') return Boolean(dashboard.value.has_subordinates)
+  if (access === 'approvals' || access === 'subordinates') return Boolean(dashboard.value.has_subordinates)
   return Boolean(dashboard.value?.supervisor_tools?.[access])
 }
 
@@ -714,6 +752,8 @@ async function showSupervisorAccessAlert(action: QuickAction) {
     header: 'Belum Ada Bawahan',
     message: action.access === 'team_schedules'
       ? 'Menu Jadwal Tim digunakan oleh atasan yang memiliki bawahan langsung atau tidak langsung.'
+      : action.access === 'subordinates'
+        ? 'Menu Tim Saya digunakan oleh atasan yang memiliki bawahan langsung.'
       : action.access === 'approvals'
         ? 'Menu Approval digunakan oleh atasan yang memiliki bawahan.'
       : 'Menu Pengajuan Lembur digunakan oleh atasan yang memiliki bawahan langsung.',
@@ -804,7 +844,8 @@ onUnmounted(() => {
 
 <style scoped>
 .dash-page {
-  --background: var(--hris-bg);
+  --background: linear-gradient(180deg, #1a73e8 0 74px, var(--hris-bg) 74px 100%);
+  background: var(--background);
 }
 
 .dash-shell {
@@ -848,6 +889,70 @@ onUnmounted(() => {
 .header-gradient > * {
   position: relative;
   z-index: 1;
+}
+
+ion-refresher-content::part(scroll) {
+  display: none;
+}
+
+.dash-page ion-refresher {
+  background: #1a73e8;
+  color: #fff;
+  z-index: 4;
+}
+
+.dash-page ion-refresher,
+.dash-page ion-refresher-content,
+.dash-page ion-refresher-content::part(container) {
+  --background: #1a73e8;
+  background: #1a73e8;
+}
+
+/* atau override lebih agresif */
+.refresher-refreshing-icon,
+.refresher-pulling-icon {
+  display: none !important;
+}
+
+.refresh-pill-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 42px;
+  padding: max(6px, env(safe-area-inset-top)) 0 8px;
+  background: #1a73e8;
+}
+
+.refresh-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 0.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 20px;
+  padding: 5px 14px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: white;
+  animation: dotPulse 0.8s ease-in-out infinite alternate;
+}
+
+.dot:nth-child(2) { animation-delay: 0.15s; }
+.dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes dotPulse {
+  from { opacity: 0.3; transform: scale(0.8); }
+  to   { opacity: 1;   transform: scale(1);   }
+}
+
+.refresh-pill-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
 }
 
 .topbar {

@@ -30,7 +30,7 @@ export interface StaffDashboard {
     team_schedules: boolean
     overtime: boolean
   }
-  subordinates_today: unknown[]
+  subordinates_today: StaffSubordinateToday[]
   pending_subordinate_approvals: unknown[]
   weekly_attendance: {
     start_date: string
@@ -44,6 +44,25 @@ export interface StaffDashboard {
       duration: string
     }>
   }
+}
+
+export interface StaffSubordinateToday {
+  nik: string
+  name: string
+  position: string | null
+  department: string | null
+  unit: string | null
+  scan_in: string | null
+  scan_out: string | null
+  attendance_status: string
+  attendance_status_label: string | null
+  schedule_code: string | null
+  schedule_label: string | null
+  status_actions?: Array<{
+    key: string
+    type: string
+    label: string
+  }>
 }
 
 export interface StaffProfile {
