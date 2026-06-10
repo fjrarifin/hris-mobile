@@ -30,7 +30,19 @@
           <!-- <ion-label>Panduan</ion-label> -->
         </ion-tab-button>
 
-        <ion-tab-button tab="profile" href="/tabs/profile" class="tab-btn" @click="openOwnProfile">
+        <ion-tab-button
+          tab="profile"
+          href="/tabs/profile"
+          class="tab-btn"
+          @click="handleProfileTabClick"
+          @touchstart.passive="startProfileTabHold"
+          @touchend="cancelProfileTabHold"
+          @touchcancel="cancelProfileTabHold"
+          @mousedown="startProfileTabHold"
+          @mouseup="cancelProfileTabHold"
+          @mouseleave="cancelProfileTabHold"
+          @contextmenu.prevent
+        >
           <span class="tab-profile-avatar">
             <SecureImage v-if="profilePhoto" :src="profilePhoto" alt="Foto profil" />
             <span v-else class="tab-profile-initials">{{ profileInitials }}</span>
@@ -142,6 +154,40 @@
         </div>
       </div>
     </ion-modal>
+
+    <!-- Profile Actions Modal -->
+    <ion-modal :is-open="profileActionsOpen" @didDismiss="closeProfileActions" class="profile-actions-modal">
+      <div class="profile-actions-panel">
+        <div class="profile-actions-header">
+          <span class="profile-actions-avatar">
+            <SecureImage v-if="profilePhoto" :src="profilePhoto" alt="Foto profil" />
+            <span v-else>{{ profileInitials }}</span>
+          </span>
+          <div class="profile-actions-copy">
+            <strong>{{ profileName }}</strong>
+            <small>{{ profileUsername }}</small>
+          </div>
+          <button type="button" class="profile-actions-close" aria-label="Tutup menu profil" @click="closeProfileActions">
+            <ion-icon :icon="closeOutline" />
+          </button>
+        </div>
+
+        <div class="profile-actions-list">
+          <button type="button" class="profile-action-button" @click="openProfileFromActions">
+            <ion-icon :icon="personCircleOutline" />
+            <span>Profil Saya</span>
+          </button>
+          <button type="button" class="profile-action-button" @click="openChangePasswordFromActions">
+            <ion-icon :icon="keyOutline" />
+            <span>Ubah Password</span>
+          </button>
+          <button type="button" class="profile-action-button profile-action-button--danger" @click="logoutFromActions">
+            <ion-icon :icon="logOutOutline" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
+    </ion-modal>
   </ion-page>
 </template>
 
@@ -161,6 +207,10 @@ import {
   homeOutline,
   cameraOutline,
   checkmarkCircleOutline,
+  closeOutline,
+  keyOutline,
+  logOutOutline,
+  personCircleOutline,
 } from 'ionicons/icons'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -168,10 +218,11 @@ import SecureImage from '@/components/SecureImage.vue'
 import { getStaffDashboard } from '@/services/staff'
 import { apiErrorMessage } from '@/services/api'
 import { showAppAlert } from '@/services/alerts'
-import { authState } from '@/services/auth'
+import { authState, logoutEmployee } from '@/services/auth'
 import { saveSelfAttendanceLog, getSelfAttendanceLogs, saveSelfAttendanceToBackend } from '@/services/attendance'
 
 const showModal = ref(false)
+const profileActionsOpen = ref(false)
 const router = useRouter()
 const route = useRoute()
 const cameraActive = ref(false)
@@ -193,6 +244,8 @@ const successLocationLabel = ref('')
 const todayStatusLabel = ref('Absen Masuk Berhasil!')
 const attendanceType = ref<'Masuk' | 'Pulang'>('Masuk')
 const profilePhoto = computed(() => authState.user?.photo_url || '')
+const profileName = computed(() => authState.user?.name || authState.user?.username || 'Profil Saya')
+const profileUsername = computed(() => authState.user?.username || 'Karyawan')
 const profileInitials = computed(() =>
   (authState.user?.name || authState.user?.username || 'P')
     .split(' ')
@@ -203,11 +256,64 @@ const profileInitials = computed(() =>
 )
 
 let clockInterval: any = null
+let profileHoldTimer: ReturnType<typeof setTimeout> | null = null
+let suppressProfileClickAfterHold = false
 
 function openOwnProfile() {
   if (route.path === '/tabs/profile' && route.query.nik) {
     void router.replace({ path: '/tabs/profile' })
   }
+}
+
+function clearProfileHoldTimer() {
+  if (profileHoldTimer) {
+    clearTimeout(profileHoldTimer)
+    profileHoldTimer = null
+  }
+}
+
+function startProfileTabHold() {
+  clearProfileHoldTimer()
+  suppressProfileClickAfterHold = false
+  profileHoldTimer = setTimeout(() => {
+    suppressProfileClickAfterHold = true
+    profileActionsOpen.value = true
+  }, 550)
+}
+
+function cancelProfileTabHold() {
+  clearProfileHoldTimer()
+}
+
+function handleProfileTabClick(event: Event) {
+  if (suppressProfileClickAfterHold) {
+    event.preventDefault()
+    event.stopPropagation()
+    suppressProfileClickAfterHold = false
+    return
+  }
+
+  openOwnProfile()
+}
+
+function closeProfileActions() {
+  profileActionsOpen.value = false
+}
+
+async function openProfileFromActions() {
+  closeProfileActions()
+  await router.push('/tabs/profile')
+}
+
+async function openChangePasswordFromActions() {
+  closeProfileActions()
+  await router.push('/change-password')
+}
+
+async function logoutFromActions() {
+  closeProfileActions()
+  await logoutEmployee()
+  await router.replace('/login')
 }
 
 function startClock() {
@@ -417,6 +523,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  clearProfileHoldTimer()
   window.removeEventListener('open-self-attendance', openSelfAttendance)
 })
 
@@ -574,6 +681,138 @@ async function takeSelfieAndAbsen() {
   font-size: 9px;
   font-weight: 800;
   color: var(--hris-text-dark);
+}
+
+.profile-actions-modal {
+  --width: min(92vw, 430px);
+  --height: auto;
+  --border-radius: 18px;
+  --box-shadow: 0 24px 60px rgba(2, 6, 23, 0.42);
+}
+
+.profile-actions-panel {
+  max-height: min(78vh, 640px);
+  overflow: auto;
+  background: var(--hris-card-bg);
+  color: var(--hris-text-dark);
+  border: 1px solid var(--hris-border);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.profile-actions-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.profile-actions-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hris-soft-surface);
+  border: 1px solid var(--hris-border);
+  color: var(--hris-text-dark);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.profile-actions-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-actions-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.profile-actions-copy strong,
+.profile-actions-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-actions-copy strong {
+  color: var(--hris-text-light);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.profile-actions-copy small {
+  color: var(--hris-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.profile-actions-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--hris-border);
+  background: var(--hris-soft-surface);
+  color: var(--hris-text-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-actions-close ion-icon {
+  font-size: 19px;
+}
+
+.profile-actions-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-action-button {
+  min-width: 0;
+  min-height: 92px;
+  border-radius: 15px;
+  border: 1px solid var(--hris-border);
+  background: var(--hris-soft-surface);
+  color: var(--hris-text-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 7px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.profile-action-button ion-icon {
+  color: var(--ion-color-primary);
+  font-size: 24px;
+}
+
+.profile-action-button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-action-button--danger {
+  color: #ef4444;
+}
+
+.profile-action-button--danger ion-icon {
+  color: #ef4444;
 }
 
 .qr-modal {

@@ -15,16 +15,18 @@
         <section class="form-card">
           <h2>Ajukan Public Holiday</h2>
           <form class="request-form" @submit.prevent="submit">
-            <label>
-              <span>Hari Libur</span>
-              <select v-model="form.public_holiday_id" required>
-                <option disabled value="">Pilih Public Holiday</option>
-                <option v-for="holiday in data.holidays" :key="holiday.id" :value="String(holiday.id)">
-                  {{ holiday.name }} - {{ requestDate(holiday.holiday_date) }}
-                </option>
-              </select>
-            </label>
-            <label><span>Tanggal Pengambilan</span><input v-model="form.claim_date" type="date" required /></label>
+            <div class="field-grid">
+              <label>
+                <span>Hari Libur</span>
+                <select v-model="form.public_holiday_id" required>
+                  <option disabled value="">Pilih Public Holiday</option>
+                  <option v-for="holiday in data.holidays" :key="holiday.id" :value="String(holiday.id)">
+                    {{ holiday.name }} - {{ requestDate(holiday.holiday_date) }}
+                  </option>
+                </select>
+              </label>
+              <label><span>Tanggal Pengambilan</span><input v-model="form.claim_date" type="date" required /></label>
+            </div>
             <ion-button type="submit" expand="block" :disabled="saving">{{ saving ? 'Mengirim...' : 'Kirim Pengajuan PH' }}</ion-button>
           </form>
         </section>

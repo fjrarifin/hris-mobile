@@ -1,6 +1,9 @@
 <template>
     <ion-page>
     <ion-content fullscreen class="profile-page">
+      <ion-refresher slot="fixed" @ionRefresh="refreshProfile">
+        <ion-refresher-content />
+      </ion-refresher>
       <main class="profile-shell">
         <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
 
@@ -38,14 +41,21 @@
               </button>
               <div v-if="canEditProfile" class="settings-wrap">
                 <button
+                  v-if="settingsOpen"
+                  type="button"
+                  class="settings-backdrop"
+                  aria-label="Tutup menu konfigurasi profil"
+                  @click="closeSettingsMenu"
+                ></button>
+                <button
                   type="button"
                   class="theme-toggle theme-toggle--hero"
                   aria-label="Buka konfigurasi profil"
-                  @click="settingsOpen = !settingsOpen"
+                  @click.stop="toggleSettingsMenu"
                 >
                   <ion-icon :icon="settingsOutline" />
                 </button>
-                <div v-if="settingsOpen" class="settings-menu">
+                <div v-if="settingsOpen" class="settings-menu" @click.stop>
                   <button type="button" @click="openChangePassword">
                     <ion-icon :icon="keyOutline" />
                     Ubah Password
@@ -62,10 +72,10 @@
                     <ion-icon :icon="callOutline" />
                     Ganti Nomor Telepon
                   </button>
-                  <button type="button" :disabled="testingPush" @click="testPushNotification">
+                  <!-- <button type="button" :disabled="testingPush" @click="testPushNotification">
                     <ion-icon :icon="notificationsOutline" />
                     Test Push Notification
-                  </button>
+                  </button> -->
                   <button type="button" class="settings-logout" @click="logout">
                     <ion-icon :icon="logOutOutline" />
                     Logout
@@ -243,7 +253,8 @@
 </template>
 
 <script setup lang="ts">
-import { IonAvatar, IonButton, IonContent, IonIcon, IonModal, IonPage } from '@ionic/vue'
+import { IonAvatar, IonButton, IonContent, IonIcon, IonModal, IonPage, IonRefresher, IonRefresherContent } from '@ionic/vue'
+import type { RefresherCustomEvent } from '@ionic/vue'
 import {
   briefcaseOutline,
   businessOutline,
@@ -329,6 +340,14 @@ const canEditProfile = computed(
 const shouldSecureScreen = computed(
   () => Boolean(selectedNik.value && selectedNik.value !== authState.user?.username),
 )
+
+function toggleSettingsMenu() {
+  settingsOpen.value = !settingsOpen.value
+}
+
+function closeSettingsMenu() {
+  settingsOpen.value = false
+}
 const employee = computed(() => profile.value?.employee)
 const profileName = computed(
   () => employee.value?.nama_karyawan || employee.value?.name || authState.user?.name || 'Karyawan',
@@ -421,6 +440,11 @@ async function loadProfile(force = false) {
   } finally {
     loading.value = false
   }
+}
+
+async function refreshProfile(event: RefresherCustomEvent) {
+  await loadProfile(true)
+  event.target.complete()
 }
 
 function shown(value: unknown, label?: string) {
@@ -645,14 +669,21 @@ async function savePhone() {
   }
 }
 
-onMounted(loadProfile)
+onMounted(() => {
+  void loadProfile(true)
+})
 watch(selectedNik, () => {
-  void loadProfile()
+  closeSettingsMenu()
+  void loadProfile(true)
+})
+watch(() => route.fullPath, () => {
+  closeSettingsMenu()
 })
 watch(shouldSecureScreen, (enabled) => {
   void setSecureScreen(enabled)
 }, { immediate: true })
 onUnmounted(() => {
+  closeSettingsMenu()
   void setSecureScreen(false)
   if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
 })
@@ -699,11 +730,20 @@ onUnmounted(() => {
   position: relative;
 }
 
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
 .settings-menu {
   position: absolute;
   top: 40px;
   right: 0;
-  z-index: 5;
+  z-index: 21;
   width: 210px;
   padding: 6px;
   border-radius: 14px;

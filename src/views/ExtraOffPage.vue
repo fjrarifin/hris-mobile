@@ -15,16 +15,18 @@
         <section class="form-card">
           <h2>Ajukan Extra Off</h2>
           <form class="request-form" @submit.prevent="submit">
-            <label>
-              <span>Sumber Saldo EO</span>
-              <select :value="sourceValue" required @change="chooseSource">
-                <option disabled value="">Pilih Periode Payroll</option>
-                <option v-for="source in data.sources" :key="`${source.source_period_start}|${source.source_period_end}`" :value="`${source.source_period_start}|${source.source_period_end}`">
-                  {{ source.label }} - sisa {{ source.remaining_days }} hari
-                </option>
-              </select>
-            </label>
-            <label><span>Tanggal Pengambilan</span><input v-model="form.claim_date" type="date" required /></label>
+            <div class="field-grid">
+              <label>
+                <span>Sumber Saldo EO</span>
+                <select :value="sourceValue" required @change="chooseSource">
+                  <option disabled value="">Pilih Periode Payroll</option>
+                  <option v-for="source in data.sources" :key="`${source.source_period_start}|${source.source_period_end}`" :value="`${source.source_period_start}|${source.source_period_end}`">
+                    {{ source.label }} - sisa {{ source.remaining_days }} hari
+                  </option>
+                </select>
+              </label>
+              <label><span>Tanggal Pengambilan</span><input v-model="form.claim_date" type="date" required /></label>
+            </div>
             <ion-button type="submit" expand="block" :disabled="saving">{{ saving ? 'Mengirim...' : 'Kirim Pengajuan EO' }}</ion-button>
           </form>
         </section>
