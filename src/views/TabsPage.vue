@@ -32,15 +32,12 @@
 
         <ion-tab-button
           tab="profile"
-          href="/tabs/profile"
           class="tab-btn"
           @click="handleProfileTabClick"
-          @touchstart.passive="startProfileTabHold"
-          @touchend="cancelProfileTabHold"
-          @touchcancel="cancelProfileTabHold"
-          @mousedown="startProfileTabHold"
-          @mouseup="cancelProfileTabHold"
-          @mouseleave="cancelProfileTabHold"
+          @pointerdown="startProfileTabHold"
+          @pointerup="cancelProfileTabHold"
+          @pointercancel="cancelProfileTabHold"
+          @pointerleave="cancelProfileTabHold"
           @contextmenu.prevent
         >
           <span class="tab-profile-avatar">
@@ -156,8 +153,8 @@
     </ion-modal>
 
     <!-- Profile Actions Dialog -->
-    <div v-if="profileActionsOpen" class="profile-actions-overlay" @click="closeProfileActions">
-      <div class="profile-actions-panel" @click.stop>
+    <div v-if="profileActionsOpen" class="profile-actions-overlay" @pointerdown.self.prevent.stop="closeProfileActions">
+      <div class="profile-actions-panel" @pointerdown.stop @click.stop>
         <div class="profile-actions-header">
           <span class="profile-actions-avatar">
             <SecureImage v-if="profilePhoto" :src="profilePhoto" alt="Foto profil" />
@@ -167,21 +164,21 @@
             <strong>{{ profileName }}</strong>
             <small>{{ profileUsername }}</small>
           </div>
-          <button type="button" class="profile-actions-close" aria-label="Tutup menu profil" @click="closeProfileActions">
+          <button type="button" class="profile-actions-close" aria-label="Tutup menu profil" @click.stop="closeProfileActions">
             <ion-icon :icon="closeOutline" />
           </button>
         </div>
 
         <div class="profile-actions-list">
-          <button type="button" class="profile-action-button" @click="openProfileFromActions">
+          <button type="button" class="profile-action-button" @click.stop="openProfileFromActions">
             <ion-icon :icon="personCircleOutline" />
             <span>Profil Saya</span>
           </button>
-          <button type="button" class="profile-action-button" @click="openChangePasswordFromActions">
+          <button type="button" class="profile-action-button" @click.stop="openChangePasswordFromActions">
             <ion-icon :icon="keyOutline" />
             <span>Ubah Password</span>
           </button>
-          <button type="button" class="profile-action-button profile-action-button--danger" @click="logoutFromActions">
+          <button type="button" class="profile-action-button profile-action-button--danger" @click.stop="logoutFromActions">
             <ion-icon :icon="logOutOutline" />
             <span>Logout</span>
           </button>
@@ -258,10 +255,17 @@ const profileInitials = computed(() =>
 let clockInterval: any = null
 let profileHoldTimer: ReturnType<typeof setTimeout> | null = null
 let suppressProfileClickAfterHold = false
+let activeProfileHoldPointerId: number | null = null
+let ignoreProfileClicksUntil = 0
 
-function openOwnProfile() {
+async function openOwnProfile() {
   if (route.path === '/tabs/profile' && route.query.nik) {
-    void router.replace({ path: '/tabs/profile' })
+    await router.replace({ path: '/tabs/profile' })
+    return
+  }
+
+  if (route.path !== '/tabs/profile') {
+    await router.push('/tabs/profile')
   }
 }
 
@@ -272,33 +276,54 @@ function clearProfileHoldTimer() {
   }
 }
 
-function startProfileTabHold() {
+function startProfileTabHold(event: PointerEvent) {
+  if (event.pointerType === 'mouse' && event.button !== 0) {
+    return
+  }
+
   clearProfileHoldTimer()
+  activeProfileHoldPointerId = event.pointerId
   suppressProfileClickAfterHold = false
   profileHoldTimer = setTimeout(() => {
     suppressProfileClickAfterHold = true
+    ignoreProfileClicksUntil = Date.now() + 800
     profileActionsOpen.value = true
   }, 550)
 }
 
-function cancelProfileTabHold() {
+function cancelProfileTabHold(event?: PointerEvent) {
+  if (
+    activeProfileHoldPointerId !== null
+    && event
+    && event.pointerId !== activeProfileHoldPointerId
+  ) {
+    return
+  }
+
+  activeProfileHoldPointerId = null
   clearProfileHoldTimer()
 }
 
 function handleProfileTabClick(event: Event) {
-  if (suppressProfileClickAfterHold) {
+  event.preventDefault()
+  event.stopPropagation()
+  clearProfileHoldTimer()
+
+  if (suppressProfileClickAfterHold || Date.now() < ignoreProfileClicksUntil) {
     event.preventDefault()
     event.stopPropagation()
     suppressProfileClickAfterHold = false
     return
   }
 
-  openOwnProfile()
+  void openOwnProfile()
 }
 
 function closeProfileActions() {
   clearProfileHoldTimer()
+  activeProfileHoldPointerId = null
   suppressProfileClickAfterHold = false
+  ignoreProfileClicksUntil = Date.now() + 300
   profileActionsOpen.value = false
 }
 
@@ -611,6 +636,13 @@ async function takeSelfieAndAbsen() {
   --color-selected: var(--ion-color-primary);
 }
 
+.tab-btn,
+.tab-profile-avatar {
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  user-select: none;
+}
+
 /* ─── Center FAB Button ── */
 .qris-tab {
   --color: transparent;
@@ -699,6 +731,7 @@ async function takeSelfieAndAbsen() {
   justify-content: center;
   padding: 18px;
   background: rgba(2, 6, 23, 0.42);
+  touch-action: none;
 }
 
 .profile-actions-panel {
