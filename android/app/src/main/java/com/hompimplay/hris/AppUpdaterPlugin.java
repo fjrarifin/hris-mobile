@@ -9,6 +9,8 @@ import android.net.Uri;
 import android.database.Cursor;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 
 import androidx.core.content.FileProvider;
@@ -26,6 +28,8 @@ public class AppUpdaterPlugin extends Plugin {
     private long downloadId = -1;
     private PluginCall pendingCall;
     private BroadcastReceiver receiver;
+    private final Handler progressHandler = new Handler(Looper.getMainLooper());
+    private Runnable progressRunnable;
 
     @PluginMethod
     public void canInstallPackages(PluginCall call) {
@@ -82,6 +86,7 @@ public class AppUpdaterPlugin extends Plugin {
             DownloadManager manager = (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
             downloadId = manager.enqueue(request);
             pendingCall = call;
+            startProgressPolling();
             registerReceiver(apkFile);
         } catch (Exception exception) {
             call.reject(exception.getMessage() != null ? exception.getMessage() : "Update aplikasi gagal dimulai.");
@@ -110,6 +115,7 @@ public class AppUpdaterPlugin extends Plugin {
                 } catch (Exception ignored) {
                 }
                 receiver = null;
+                stopProgressPolling();
                 DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
                 DownloadManager.Query query = new DownloadManager.Query();
                 query.setFilterById(downloadId);
@@ -124,8 +130,10 @@ public class AppUpdaterPlugin extends Plugin {
                 }
 
                 if (success && apkFile.exists()) {
+                    sendProgress(100, 0, 0, DownloadManager.STATUS_SUCCESSFUL);
                     openInstaller(apkFile);
                 } else if (pendingCall != null) {
+                    sendProgress(0, 0, 0, DownloadManager.STATUS_FAILED);
                     pendingCall.reject("Download update gagal. Periksa koneksi internet lalu coba lagi.");
                     pendingCall = null;
                     return;
@@ -146,6 +154,62 @@ public class AppUpdaterPlugin extends Plugin {
         } else {
             getContext().registerReceiver(receiver, filter);
         }
+    }
+
+    private void startProgressPolling() {
+        stopProgressPolling();
+        progressRunnable = new Runnable() {
+            @Override
+            public void run() {
+                DownloadManager manager = (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
+                DownloadManager.Query query = new DownloadManager.Query();
+                query.setFilterById(downloadId);
+                Cursor cursor = manager.query(query);
+
+                if (cursor != null) {
+                    try {
+                        if (cursor.moveToFirst()) {
+                            int status = getInt(cursor, DownloadManager.COLUMN_STATUS, DownloadManager.STATUS_PENDING);
+                            long downloaded = getLong(cursor, DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR, 0);
+                            long total = getLong(cursor, DownloadManager.COLUMN_TOTAL_SIZE_BYTES, 0);
+                            int progress = total > 0 ? Math.min(99, (int) ((downloaded * 100) / total)) : 0;
+                            sendProgress(progress, downloaded, total, status);
+                        }
+                    } finally {
+                        cursor.close();
+                    }
+                }
+
+                progressHandler.postDelayed(this, 500);
+            }
+        };
+        progressHandler.post(progressRunnable);
+    }
+
+    private void stopProgressPolling() {
+        if (progressRunnable != null) {
+            progressHandler.removeCallbacks(progressRunnable);
+            progressRunnable = null;
+        }
+    }
+
+    private void sendProgress(int progress, long downloaded, long total, int status) {
+        JSObject data = new JSObject();
+        data.put("progress", progress);
+        data.put("downloaded", downloaded);
+        data.put("total", total);
+        data.put("status", status);
+        notifyListeners("downloadProgress", data);
+    }
+
+    private int getInt(Cursor cursor, String columnName, int fallback) {
+        int index = cursor.getColumnIndex(columnName);
+        return index >= 0 ? cursor.getInt(index) : fallback;
+    }
+
+    private long getLong(Cursor cursor, String columnName, long fallback) {
+        int index = cursor.getColumnIndex(columnName);
+        return index >= 0 ? cursor.getLong(index) : fallback;
     }
 
     private void openInstaller(File apkFile) {

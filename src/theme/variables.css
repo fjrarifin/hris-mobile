@@ -186,3 +186,79 @@ ion-alert.app-alert::part(message) {
   font-weight: 600;
   font-size: 13px;
 }
+
+.app-update-progress {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(2, 6, 23, 0.55);
+}
+
+.app-update-progress__panel {
+  width: min(92vw, 380px);
+  border: 1px solid var(--hris-border);
+  border-radius: 20px;
+  padding: 22px;
+  background: var(--hris-card-bg);
+  color: var(--hris-text-light);
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.32);
+}
+
+.app-update-progress__panel h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 850;
+  color: var(--hris-text-light);
+}
+
+.app-update-progress__status {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--hris-text-secondary);
+}
+
+.app-update-progress__track {
+  width: 100%;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.24);
+}
+
+.app-update-progress__bar {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #22c55e);
+  transition: width 240ms ease;
+}
+
+.app-update-progress__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--hris-text-light);
+}
+
+.app-update-progress__panel small {
+  display: block;
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--hris-text-secondary);
+}
+
+:root[data-theme="light"] .app-update-progress__panel,
+:root[data-theme="light"] .app-update-progress__panel h3,
+:root[data-theme="light"] .app-update-progress__meta {
+  color: var(--hris-text-dark);
+}
