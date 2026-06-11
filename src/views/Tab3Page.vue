@@ -35,7 +35,7 @@
                 class="theme-toggle theme-toggle--hero profile-qr-button"
                 aria-label="Tampilkan QR karyawan"
                 v-if="canEditProfile"
-                @click="openQrModal"
+                @click="openQrReasonModal"
               >
                 <ion-icon :icon="qrCodeOutline" />
               </button>
@@ -230,6 +230,34 @@
           </section>
         </ion-modal>
 
+        <ion-modal :is-open="qrReasonModalOpen" class="profile-modal" @didDismiss="closeQrReasonModal">
+          <section class="profile-modal-card">
+            <h2>Alasan Menggunakan QR Gate</h2>
+            <p>Isi alasan sebelum QR akses gate ditampilkan. HRD akan menerima notifikasi penggunaan QR ini.</p>
+
+            <label class="modal-field">
+              <span>Alasan</span>
+              <textarea
+                v-model.trim="qrReason"
+                rows="4"
+                maxlength="500"
+                placeholder="Contoh: kartu akses tertinggal"
+              ></textarea>
+            </label>
+
+            <p v-if="qrReasonMessage" class="modal-feedback danger">
+              {{ qrReasonMessage }}
+            </p>
+
+            <div class="modal-actions">
+              <ion-button fill="outline" :disabled="qrReasonSaving" @click="closeQrReasonModal">Batal</ion-button>
+              <ion-button :disabled="qrReasonSaving || qrReason.trim().length < 5" @click="submitQrReason">
+                {{ qrReasonSaving ? 'Menyimpan...' : 'Tampilkan QR' }}
+              </ion-button>
+            </div>
+          </section>
+        </ion-modal>
+
         <ion-modal :is-open="qrModalOpen" class="profile-modal" @didDismiss="closeQrModal">
           <section class="profile-modal-card profile-qr-modal">
             <h2>QR Akses Gate</h2>
@@ -290,6 +318,7 @@ import { authState, logoutEmployee, updateEmployeePhoto } from '@/services/auth'
 import {
   getStaffEmployeeProfile,
   getStaffProfile,
+  logStaffGateQrReason,
   requestStaffProfilePhoneOtp,
   updateStaffProfileContact,
   updateStaffProfilePhoto,
@@ -326,6 +355,10 @@ const phoneOtp = ref('')
 const phoneStep = ref<'input' | 'otp'>('input')
 const contactMessage = ref('')
 const contactHasError = ref(false)
+const qrReasonModalOpen = ref(false)
+const qrReason = ref('')
+const qrReasonSaving = ref(false)
+const qrReasonMessage = ref('')
 const qrModalOpen = ref(false)
 const qrDataUrl = ref('')
 const testingPush = ref(false)
@@ -597,6 +630,38 @@ function closeContactModal(force = false) {
   contactModalOpen.value = false
 }
 
+function openQrReasonModal() {
+  settingsOpen.value = false
+  qrReason.value = ''
+  qrReasonMessage.value = ''
+  qrReasonModalOpen.value = true
+}
+
+function closeQrReasonModal(force = false) {
+  if (qrReasonSaving.value && !force) return
+  qrReasonModalOpen.value = false
+}
+
+async function submitQrReason() {
+  const reason = qrReason.value.trim()
+  if (reason.length < 5) {
+    qrReasonMessage.value = 'Alasan minimal 5 karakter.'
+    return
+  }
+
+  qrReasonSaving.value = true
+  qrReasonMessage.value = ''
+  try {
+    await logStaffGateQrReason(reason)
+    closeQrReasonModal(true)
+    await openQrModal()
+  } catch (error) {
+    qrReasonMessage.value = apiErrorMessage(error, 'Alasan QR gate tidak dapat disimpan.')
+  } finally {
+    qrReasonSaving.value = false
+  }
+}
+
 async function openQrModal() {
   qrModalOpen.value = true
   await refreshQrCode()
@@ -841,7 +906,8 @@ onUnmounted(() => {
   font-weight: 700;
 }
 
-.modal-field input {
+.modal-field input,
+.modal-field textarea {
   width: 100%;
   padding: 10px 11px;
   border: 1px solid var(--hris-input-border);
@@ -852,7 +918,14 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
-.modal-field input:focus {
+.modal-field textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.modal-field input:focus,
+.modal-field textarea:focus {
   border-color: var(--hris-input-focus-border);
   box-shadow: var(--hris-input-focus-shadow);
 }

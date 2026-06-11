@@ -319,6 +319,14 @@ export function requestStaffProfilePhoneOtp(noHp: string) {
   })
 }
 
+export function logStaffGateQrReason(reason: string) {
+  return apiRequest<{ message: string; log_id: number }>('/staff/profile/gate-qr-usage', {
+    method: 'POST',
+    token: authState.token,
+    body: { reason },
+  })
+}
+
 export async function updateStaffProfileContact(payload: { email?: string; no_hp?: string; phone_otp?: string }) {
   const response = await apiRequest<StaffProfileContactResponse>('/staff/profile/contact', {
     method: 'PATCH',
