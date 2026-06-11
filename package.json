@@ -1,13 +1,14 @@
 {
   "name": "hris-mobile",
   "private": true,
-  "version": "1.6.3",
+  "version": "1.6.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "build:apk": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug",
     "build:apk:windows": "npm run build && npx cap sync android && cd android && gradlew.bat assembleDebug",
+    "build:release:windows": "npm run build && npx cap sync android && cd android && gradlew.bat assembleRelease",
     "preview": "vite preview",
     "test:e2e": "cypress run",
     "test:unit": "vitest",

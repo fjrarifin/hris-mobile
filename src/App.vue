@@ -11,6 +11,7 @@ import { requestStartupAppPermissions } from './services/appPermissions';
 import { showAppAlert } from './services/alerts';
 import { App } from '@capacitor/app';
 import { logoutEmployee, authState } from './services/auth';
+import { checkForAppUpdate } from './services/appUpdate';
 
 const ionRouter = useIonRouter();
 
@@ -39,5 +40,11 @@ document.addEventListener('ionBackButton', (ev: any) => {
 
 onMounted(() => {
   requestStartupAppPermissions();
+  void checkForAppUpdate({ silent: true });
+  App.addListener('appStateChange', ({ isActive }) => {
+    if (isActive) {
+      void checkForAppUpdate({ silent: true });
+    }
+  });
 });
 </script>

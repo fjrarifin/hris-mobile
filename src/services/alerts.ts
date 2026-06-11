@@ -7,6 +7,7 @@ export interface AppAlertOptions {
   subHeader?: string
   message: string
   type?: AppAlertType
+  backdropDismiss?: boolean
   buttons?: Array<string | { text: string; role?: string; handler?: () => void }>
 }
 
@@ -16,6 +17,7 @@ export async function showAppAlert(options: AppAlertOptions) {
     subHeader: options.subHeader,
     message: options.message,
     buttons: options.buttons || [{ text: 'Tutup', role: 'cancel' }],
+    backdropDismiss: options.backdropDismiss ?? true,
     cssClass: [`app-alert`, `app-alert--${options.type || 'info'}`],
   })
 
