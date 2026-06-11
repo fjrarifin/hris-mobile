@@ -163,7 +163,7 @@ import {
   cameraOutline,
   checkmarkCircleOutline,
 } from 'ionicons/icons'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SecureImage from '@/components/SecureImage.vue'
 import { getStaffDashboard } from '@/services/staff'
@@ -272,6 +272,30 @@ function getGPSLocation() {
   )
 }
 
+function waitForSelfAttendanceLocation() {
+  getGPSLocation()
+
+  return new Promise<void>((resolve) => {
+    const timeout = window.setTimeout(resolve, 9000)
+    const stop = watch(
+      () => gpsLoading.value,
+      (loading) => {
+        if (!loading) {
+          window.clearTimeout(timeout)
+          stop()
+          resolve()
+        }
+      },
+    )
+
+    if (!gpsLoading.value) {
+      window.clearTimeout(timeout)
+      stop()
+      resolve()
+    }
+  })
+}
+
 async function openSelfAttendance() {
   if (!authState.user?.allow_mobile_attendance) {
     void showAppAlert({
@@ -301,11 +325,9 @@ async function openSelfAttendance() {
   todayStatusLabel.value = 'Absen Masuk Berhasil!'
 
   startClock()
-  getGPSLocation()
+  await waitForSelfAttendanceLocation()
   await determineAttendanceType()
-  window.setTimeout(() => {
-    void startCamera()
-  }, 1000)
+  await startCamera()
 }
 
 async function recentlyCheckedIn() {
