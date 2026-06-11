@@ -68,13 +68,13 @@ export async function checkForAppUpdate(options: { silent?: boolean } = {}) {
 
 async function promptUpdate(release: MobileAppRelease, currentVersionCode: number) {
   const sizeMb = release.file_size ? `${(release.file_size / 1024 / 1024).toFixed(1)} MB` : '-'
-  const notes = release.notes ? `<br><br>${escapeHtml(release.notes).replace(/\n/g, '<br>')}` : ''
+  const notes = release.notes ? `\n\n${release.notes}` : ''
   const message = [
-    `Versi terbaru <strong>${escapeHtml(release.version_name)}</strong> tersedia.`,
+    `Versi terbaru ${release.version_name} tersedia.`,
     `Versi terpasang: ${currentVersionCode || '-'}`,
     `Ukuran file: ${sizeMb}`,
     notes,
-  ].join('<br>')
+  ].join('\n')
 
   await showAppAlert({
     header: release.mandatory ? 'Update Wajib Tersedia' : 'Update Aplikasi Tersedia',
@@ -131,13 +131,4 @@ async function startUpdate(release: MobileAppRelease) {
       type: 'danger',
     })
   }
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
 }

@@ -7,7 +7,6 @@
 <script setup lang="ts">
 import { IonApp, IonRouterOutlet, useIonRouter } from '@ionic/vue';
 import { onMounted } from 'vue';
-import { requestStartupAppPermissions } from './services/appPermissions';
 import { showAppAlert } from './services/alerts';
 import { App } from '@capacitor/app';
 import { logoutEmployee, authState } from './services/auth';
@@ -39,7 +38,6 @@ document.addEventListener('ionBackButton', (ev: any) => {
 });
 
 onMounted(() => {
-  requestStartupAppPermissions();
   void checkForAppUpdate({ silent: true });
   App.addListener('appStateChange', ({ isActive }) => {
     if (isActive) {

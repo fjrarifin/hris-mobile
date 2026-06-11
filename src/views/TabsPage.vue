@@ -302,8 +302,10 @@ async function openSelfAttendance() {
 
   startClock()
   getGPSLocation()
-  determineAttendanceType()
-  setTimeout(startCamera, 400)
+  await determineAttendanceType()
+  window.setTimeout(() => {
+    void startCamera()
+  }, 1000)
 }
 
 async function recentlyCheckedIn() {
