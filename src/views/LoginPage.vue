@@ -147,7 +147,7 @@ import { ApiRequestError, BACKEND_LOGO_URL, apiErrorMessage, isApiRequestError }
 import { loginEmployee } from '@/services/auth'
 
 const router = useRouter()
-const appVersion = import.meta.env.VITE_APP_VERSION || '1.6.8'
+const appVersion = import.meta.env.VITE_APP_VERSION || '1.6.9'
 
 const form = reactive({ username: '', password: '' })
 const loading  = ref(false)
