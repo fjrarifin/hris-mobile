@@ -3,6 +3,8 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const workspaceDir = resolve(rootDir, '..')
+const hrisFeDir = join(workspaceDir, 'hris-fe')
 const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'))
 const apkOutputDir = join(rootDir, 'android', 'app', 'build', 'outputs', 'apk', 'release')
 const version = packageJson.version
@@ -40,10 +42,10 @@ function copyApkTo(targetDir, sourceApk) {
 }
 
 const sourceApk = findReleaseApk()
-const publicFiles = copyApkTo(join(rootDir, 'public', 'download'), sourceApk)
+const publicFiles = copyApkTo(join(hrisFeDir, 'public', 'download'), sourceApk)
 const copiedFiles = [...publicFiles]
 
-const distDir = join(rootDir, 'dist')
+const distDir = join(hrisFeDir, 'dist')
 if (existsSync(distDir)) {
   copiedFiles.push(...copyApkTo(join(distDir, 'download'), sourceApk))
 }
