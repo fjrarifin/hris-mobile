@@ -30,6 +30,7 @@ public class AppUpdaterPlugin extends Plugin {
     private BroadcastReceiver receiver;
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private Runnable progressRunnable;
+    private boolean completionHandled = false;
 
     @PluginMethod
     public void canInstallPackages(PluginCall call) {
@@ -86,7 +87,8 @@ public class AppUpdaterPlugin extends Plugin {
             DownloadManager manager = (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
             downloadId = manager.enqueue(request);
             pendingCall = call;
-            startProgressPolling();
+            completionHandled = false;
+            startProgressPolling(apkFile);
             registerReceiver(apkFile);
         } catch (Exception exception) {
             call.reject(exception.getMessage() != null ? exception.getMessage() : "Update aplikasi gagal dimulai.");
@@ -110,41 +112,7 @@ public class AppUpdaterPlugin extends Plugin {
                     return;
                 }
 
-                try {
-                    context.unregisterReceiver(this);
-                } catch (Exception ignored) {
-                }
-                receiver = null;
-                stopProgressPolling();
-                DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-                DownloadManager.Query query = new DownloadManager.Query();
-                query.setFilterById(downloadId);
-                Cursor cursor = manager.query(query);
-                boolean success = false;
-                if (cursor != null) {
-                    if (cursor.moveToFirst()) {
-                        int statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
-                        success = statusIndex >= 0 && cursor.getInt(statusIndex) == DownloadManager.STATUS_SUCCESSFUL;
-                    }
-                    cursor.close();
-                }
-
-                if (success && apkFile.exists()) {
-                    sendProgress(100, 0, 0, DownloadManager.STATUS_SUCCESSFUL);
-                    openInstaller(apkFile);
-                } else if (pendingCall != null) {
-                    sendProgress(0, 0, 0, DownloadManager.STATUS_FAILED);
-                    pendingCall.reject("Download update gagal. Periksa koneksi internet lalu coba lagi.");
-                    pendingCall = null;
-                    return;
-                }
-
-                if (pendingCall != null) {
-                    JSObject result = new JSObject();
-                    result.put("download_id", downloadId);
-                    pendingCall.resolve(result);
-                    pendingCall = null;
-                }
+                handleDownloadFinished(context, apkFile);
             }
         };
 
@@ -156,11 +124,15 @@ public class AppUpdaterPlugin extends Plugin {
         }
     }
 
-    private void startProgressPolling() {
+    private void startProgressPolling(File apkFile) {
         stopProgressPolling();
         progressRunnable = new Runnable() {
             @Override
             public void run() {
+                if (completionHandled) {
+                    return;
+                }
+
                 DownloadManager manager = (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
                 DownloadManager.Query query = new DownloadManager.Query();
                 query.setFilterById(downloadId);
@@ -174,6 +146,11 @@ public class AppUpdaterPlugin extends Plugin {
                             long total = getLong(cursor, DownloadManager.COLUMN_TOTAL_SIZE_BYTES, 0);
                             int progress = total > 0 ? Math.min(99, (int) ((downloaded * 100) / total)) : 0;
                             sendProgress(progress, downloaded, total, status);
+
+                            if (status == DownloadManager.STATUS_SUCCESSFUL || status == DownloadManager.STATUS_FAILED) {
+                                handleDownloadFinished(getContext(), apkFile);
+                                return;
+                            }
                         }
                     } finally {
                         cursor.close();
@@ -191,6 +168,82 @@ public class AppUpdaterPlugin extends Plugin {
             progressHandler.removeCallbacks(progressRunnable);
             progressRunnable = null;
         }
+    }
+
+    private void handleDownloadFinished(Context context, File apkFile) {
+        if (completionHandled) {
+            return;
+        }
+
+        completionHandled = true;
+        unregisterReceiverSafely(context);
+        stopProgressPolling();
+
+        DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+        DownloadManager.Query query = new DownloadManager.Query();
+        query.setFilterById(downloadId);
+        Cursor cursor = manager.query(query);
+        boolean success = false;
+        long downloaded = apkFile.exists() ? apkFile.length() : 0;
+        long total = downloaded;
+
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    int statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+                    success = statusIndex >= 0 && cursor.getInt(statusIndex) == DownloadManager.STATUS_SUCCESSFUL;
+                    downloaded = getLong(cursor, DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR, downloaded);
+                    total = getLong(cursor, DownloadManager.COLUMN_TOTAL_SIZE_BYTES, total);
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+
+        if (success && apkFile.exists()) {
+            sendProgress(100, downloaded, total, DownloadManager.STATUS_SUCCESSFUL);
+
+            try {
+                openInstaller(apkFile);
+            } catch (Exception exception) {
+                if (pendingCall != null) {
+                    pendingCall.reject(
+                        exception.getMessage() != null
+                            ? exception.getMessage()
+                            : "APK berhasil didownload, tetapi installer Android tidak dapat dibuka. Buka file APK dari folder download aplikasi."
+                    );
+                    pendingCall = null;
+                }
+                return;
+            }
+
+            if (pendingCall != null) {
+                JSObject result = new JSObject();
+                result.put("download_id", downloadId);
+                pendingCall.resolve(result);
+                pendingCall = null;
+            }
+
+            return;
+        }
+
+        sendProgress(0, downloaded, total, DownloadManager.STATUS_FAILED);
+        if (pendingCall != null) {
+            pendingCall.reject("Download update gagal. Periksa koneksi internet lalu coba lagi.");
+            pendingCall = null;
+        }
+    }
+
+    private void unregisterReceiverSafely(Context context) {
+        if (receiver == null) {
+            return;
+        }
+
+        try {
+            context.unregisterReceiver(receiver);
+        } catch (Exception ignored) {
+        }
+        receiver = null;
     }
 
     private void sendProgress(int progress, long downloaded, long total, int status) {
@@ -219,10 +272,31 @@ public class AppUpdaterPlugin extends Plugin {
             apkFile
         );
 
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        Intent viewIntent = new Intent(Intent.ACTION_VIEW);
+        viewIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+        viewIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        viewIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        try {
+            startInstallerIntent(viewIntent);
+            return;
+        } catch (Exception ignored) {
+        }
+
+        Intent installIntent = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+        installIntent.setData(apkUri);
+        installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        installIntent.putExtra(Intent.EXTRA_RETURN_RESULT, false);
+        startInstallerIntent(installIntent);
+    }
+
+    private void startInstallerIntent(Intent intent) {
+        if (getActivity() != null) {
+            getActivity().startActivity(intent);
+            return;
+        }
+
         getContext().startActivity(intent);
     }
 }
