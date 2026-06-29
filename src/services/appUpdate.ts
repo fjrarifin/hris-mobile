@@ -36,6 +36,7 @@ export interface MobileAppRelease {
 
 let checking = false
 let lastPromptedVersionCode = 0
+const UPDATE_HELP_WHATSAPP = '6282117289833'
 
 export async function checkForAppUpdate(options: { silent?: boolean } = {}) {
   if (checking || !Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
@@ -54,16 +55,18 @@ export async function checkForAppUpdate(options: { silent?: boolean } = {}) {
     }
 
     const currentVersionCode = Number(info.build || 0)
-    if (release.version_code <= currentVersionCode) {
+    const currentVersionName = info.version || ''
+    const versionMatches = release.version_code === currentVersionCode && release.version_name === currentVersionName
+    if (versionMatches) {
       return
     }
 
-    if (options.silent && !release.mandatory && lastPromptedVersionCode === release.version_code) {
+    if (options.silent && lastPromptedVersionCode === release.version_code) {
       return
     }
     lastPromptedVersionCode = release.version_code
 
-    await promptUpdate(release, currentVersionCode)
+    await promptUpdate(release, currentVersionCode, currentVersionName)
   } catch (error) {
     if (!options.silent) {
       await showAppAlert({
@@ -77,23 +80,30 @@ export async function checkForAppUpdate(options: { silent?: boolean } = {}) {
   }
 }
 
-async function promptUpdate(release: MobileAppRelease, currentVersionCode: number) {
+async function promptUpdate(release: MobileAppRelease, currentVersionCode: number, currentVersionName: string) {
   const sizeMb = release.file_size ? `${(release.file_size / 1024 / 1024).toFixed(1)} MB` : '-'
   const notes = release.notes ? `\n\n${release.notes}` : ''
   const message = [
     `Versi terbaru ${release.version_name} tersedia.`,
-    `Versi terpasang: ${currentVersionCode || '-'}`,
+    `Versi terpasang: ${currentVersionName || '-'} (${currentVersionCode || '-'})`,
     `Ukuran file: ${sizeMb}`,
+    'Aplikasi harus diperbarui agar data HRIS tetap sesuai production.',
     notes,
   ].join('\n')
 
   await showAppAlert({
-    header: release.mandatory ? 'Update Wajib Tersedia' : 'Update Aplikasi Tersedia',
+    header: 'Update Wajib Tersedia',
     message,
-    type: release.mandatory ? 'warning' : 'info',
-    backdropDismiss: !release.mandatory,
+    type: 'warning',
+    backdropDismiss: false,
     buttons: [
-      ...(release.mandatory ? [] : [{ text: 'Nanti', role: 'cancel' }]),
+      {
+        text: 'WhatsApp IT',
+        handler: () => {
+          openUpdateWhatsApp(release, currentVersionCode, currentVersionName)
+          return false
+        },
+      },
       {
         text: 'Update Sekarang',
         handler: () => {
@@ -113,10 +123,16 @@ async function startUpdate(release: MobileAppRelease) {
     if (!permission.allowed) {
       await showAppAlert({
         header: 'Izinkan Install Aplikasi',
-        message: 'Aktifkan izin install aplikasi untuk HRIS Mobile, lalu tekan Update Sekarang lagi.',
+        message: 'Aktifkan izin install aplikasi untuk HRIS Mobile. Jika tetap tidak bisa, hubungi IT melalui WhatsApp.',
         type: 'warning',
+        backdropDismiss: false,
         buttons: [
-          { text: 'Batal', role: 'cancel' },
+          {
+            text: 'WhatsApp IT',
+            handler: () => {
+              openUpdateWhatsApp(release)
+            },
+          },
           {
             text: 'Buka Pengaturan',
             handler: () => {
@@ -149,8 +165,18 @@ async function startUpdate(release: MobileAppRelease) {
     progressOverlay?.close()
     await showAppAlert({
       header: 'Update Gagal',
-      message: error instanceof Error ? error.message : 'Update aplikasi tidak dapat dimulai.',
+      message: `${error instanceof Error ? error.message : 'Update aplikasi tidak dapat dimulai.'}\n\nSilakan coba lagi atau hubungi IT melalui WhatsApp.`,
       type: 'danger',
+      backdropDismiss: false,
+      buttons: [
+        {
+          text: 'WhatsApp IT',
+          handler: () => {
+            openUpdateWhatsApp(release)
+          },
+        },
+        { text: 'Coba Lagi', handler: () => { void startUpdate(release) } },
+      ],
     })
   } finally {
     progressListener?.remove()
@@ -158,6 +184,17 @@ async function startUpdate(release: MobileAppRelease) {
       progressOverlay?.close()
     }, 2500)
   }
+}
+
+function openUpdateWhatsApp(release: MobileAppRelease, currentVersionCode?: number, currentVersionName?: string) {
+  const text = [
+    'Halo IT, saya tidak bisa update HRIS Mobile.',
+    `Versi production: ${release.version_name} (${release.version_code})`,
+    currentVersionCode ? `Versi terpasang: ${currentVersionName || '-'} (${currentVersionCode})` : '',
+    'Mohon dibantu.',
+  ].filter(Boolean).join('\n')
+  const url = `https://wa.me/${UPDATE_HELP_WHATSAPP}?text=${encodeURIComponent(text)}`
+  window.open(url, '_system')
 }
 
 function createUpdateProgressOverlay(release: MobileAppRelease) {

@@ -334,6 +334,7 @@ import {
   NOTIFICATIONS_CHANGED_EVENT,
   unreadNotificationCount,
 } from '@/services/notifications'
+import { checkForAppUpdate } from '@/services/appUpdate'
 
 const router = useRouter()
 const dashboard = ref<StaffDashboard | null>(null)
@@ -641,6 +642,7 @@ async function loadDashboard(force = false) {
 
 async function refreshHome(event: RefresherCustomEvent) {
   try {
+    await checkForAppUpdate({ silent: false })
     await refreshSession()
     await loadDashboard(true)
     await refreshNotificationBadge()

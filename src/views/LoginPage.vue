@@ -145,6 +145,7 @@ import { useRouter } from 'vue-router'
 import { showAppAlert } from '@/services/alerts'
 import { ApiRequestError, BACKEND_LOGO_URL, apiErrorMessage, isApiRequestError } from '@/services/api'
 import { loginEmployee } from '@/services/auth'
+import { checkForAppUpdate } from '@/services/appUpdate'
 
 const router = useRouter()
 const appVersion = import.meta.env.VITE_APP_VERSION || '1.6.9'
@@ -206,6 +207,7 @@ async function submit() {
     }
 
     await router.replace('/tabs/home')
+    void checkForAppUpdate({ silent: false })
 
   } catch (error) {
     let msg = apiErrorMessage(error, 'Login gagal. Periksa NIK dan password.')

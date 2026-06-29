@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import TabsPage from '../views/TabsPage.vue'
 import { authState, restoreSession } from '@/services/auth'
+import { showAppAlert } from '@/services/alerts'
+import { getStaffDashboard } from '@/services/staff'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -111,6 +113,23 @@ router.beforeEach(async (to) => {
 
   if (to.meta.requiresAuth && authState.user?.must_change_password && to.path !== '/change-password') {
     return '/change-password'
+  }
+
+  if (to.path === '/requests/overtime') {
+    try {
+      const dashboard = await getStaffDashboard({ force: true })
+      if (!dashboard.supervisor_tools?.overtime) {
+        void showAppAlert({
+          header: 'Belum Ada Bawahan',
+          message: 'Menu Pengajuan Lembur digunakan oleh atasan yang memiliki bawahan langsung.',
+          type: 'warning',
+        })
+
+        return '/tabs/home'
+      }
+    } catch {
+      return true
+    }
   }
 
   if (to.meta.guestOnly && authState.user) {

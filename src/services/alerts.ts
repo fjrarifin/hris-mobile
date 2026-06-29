@@ -8,7 +8,7 @@ export interface AppAlertOptions {
   message: string
   type?: AppAlertType
   backdropDismiss?: boolean
-  buttons?: Array<string | { text: string; role?: string; handler?: () => void }>
+  buttons?: Array<string | { text: string; role?: string; handler?: () => boolean | void }>
 }
 
 export async function showAppAlert(options: AppAlertOptions) {

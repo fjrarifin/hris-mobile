@@ -115,7 +115,7 @@
           <!-- Real-time clock and location info when active -->
           <div v-if="!attendanceSuccess" class="attendance-info-strip">
             <div class="info-time">{{ liveTime }}</div>
-            <div class="info-gps" :class="{ 'gps-active': gpsCoords }">
+            <div class="info-gps" :class="{ 'gps-active': gpsInsideRadius }">
               <span class="gps-pulse" v-if="gpsLoading"></span>
               <span>{{ gpsStatusText }}</span>
             </div>
@@ -130,7 +130,7 @@
           <button 
             v-if="!attendanceSuccess" 
             class="capture-btn" 
-            :disabled="!cameraActive || gpsLoading"
+            :disabled="!cameraActive || gpsLoading || !gpsCoords || !gpsInsideRadius"
             @click="takeSelfieAndAbsen"
           >
             <ion-icon :icon="cameraOutline" />
@@ -170,7 +170,14 @@ import { getStaffDashboard } from '@/services/staff'
 import { apiErrorMessage } from '@/services/api'
 import { showAppAlert } from '@/services/alerts'
 import { authState } from '@/services/auth'
-import { saveSelfAttendanceLog, getSelfAttendanceLogs, saveSelfAttendanceToBackend } from '@/services/attendance'
+import {
+  ATTENDANCE_CENTER,
+  attendanceDistanceMeters,
+  getSelfAttendanceLogs,
+  isInsideAttendanceRadius,
+  saveSelfAttendanceLog,
+  saveSelfAttendanceToBackend,
+} from '@/services/attendance'
 
 const showModal = ref(false)
 const router = useRouter()
@@ -184,6 +191,7 @@ const stream = ref<MediaStream | null>(null)
 const gpsLoading = ref(false)
 const gpsCoords = ref<{ latitude: number; longitude: number } | null>(null)
 const gpsStatusText = ref('Mendeteksi lokasi GPS...')
+const gpsInsideRadius = ref(false)
 const liveTime = ref('')
 
 const attendanceSuccess = ref(false)
@@ -238,10 +246,11 @@ function stopClock() {
 function getGPSLocation() {
   gpsLoading.value = true
   gpsStatusText.value = 'Mendeteksi koordinat GPS...'
-  
+  gpsCoords.value = null
+  gpsInsideRadius.value = false
+
   if (!navigator.geolocation) {
-    gpsCoords.value = { latitude: -6.2088, longitude: 106.8456 }
-    gpsStatusText.value = '📍 GPS: -6.2088, 106.8456 (Mock)'
+    gpsStatusText.value = 'GPS tidak tersedia di perangkat ini.'
     gpsLoading.value = false
     return
   }
@@ -257,15 +266,17 @@ function getGPSLocation() {
       const lat = position.coords.latitude
       const lon = position.coords.longitude
       const acc = Math.round(position.coords.accuracy)
+      const distance = Math.round(attendanceDistanceMeters(lat, lon))
       gpsCoords.value = { latitude: lat, longitude: lon }
-      gpsStatusText.value = `📍 GPS: ${lat.toFixed(5)}, ${lon.toFixed(5)} (Akurasi: ${acc}m)`
+      gpsInsideRadius.value = isInsideAttendanceRadius(lat, lon)
+      gpsStatusText.value = gpsInsideRadius.value
+        ? `Dalam radius ${ATTENDANCE_CENTER.name} (${distance}m, akurasi ${acc}m)`
+        : `Di luar radius ${ATTENDANCE_CENTER.name} (${distance}m dari titik absen)`
       gpsLoading.value = false
     },
     (error) => {
       console.warn('Geolocation error:', error)
-      // Fallback office coordinates to not block user flow
-      gpsCoords.value = { latitude: -6.2088, longitude: 106.8456 }
-      gpsStatusText.value = '📍 GPS: -6.2088, 106.8456 (Default)'
+      gpsStatusText.value = 'Lokasi GPS tidak dapat dibaca. Aktifkan izin lokasi lalu coba lagi.'
       gpsLoading.value = false
     },
     options
@@ -321,6 +332,7 @@ async function openSelfAttendance() {
   attendanceSuccess.value = false
   capturedPhoto.value = ''
   gpsCoords.value = null
+  gpsInsideRadius.value = false
   attendanceType.value = 'Masuk'
   todayStatusLabel.value = 'Absen Masuk Berhasil!'
 
@@ -448,6 +460,25 @@ onUnmounted(() => {
 async function takeSelfieAndAbsen() {
   const canvas = canvasRef.value
   const video = videoRef.value
+
+  if (!gpsCoords.value) {
+    await showAppAlert({
+      header: 'Lokasi Belum Terdeteksi',
+      message: 'Aktifkan GPS dan izinkan akses lokasi sebelum melakukan absensi.',
+      type: 'warning',
+    })
+    return
+  }
+
+  const distance = Math.round(attendanceDistanceMeters(gpsCoords.value.latitude, gpsCoords.value.longitude))
+  if (!gpsInsideRadius.value) {
+    await showAppAlert({
+      header: 'Di Luar Radius Absensi',
+      message: `Absensi mobile hanya bisa dilakukan maksimal ${ATTENDANCE_CENTER.radiusMeters} meter dari ${ATTENDANCE_CENTER.name}. Jarak Anda saat ini sekitar ${distance} meter.`,
+      type: 'warning',
+    })
+    return
+  }
   
   if (canvas && video && cameraActive.value) {
     const context = canvas.getContext('2d')
@@ -469,8 +500,8 @@ async function takeSelfieAndAbsen() {
       context.setTransform(1, 0, 0, 1, 0, 0) // reset
       
       const photoDataUrl = canvas.toDataURL('image/jpeg', 0.72)
-      const lat = gpsCoords.value?.latitude ?? -6.2088
-      const lon = gpsCoords.value?.longitude ?? 106.8456
+      const lat = gpsCoords.value.latitude
+      const lon = gpsCoords.value.longitude
 
         try {
           const response = await saveSelfAttendanceToBackend(photoDataUrl, lat, lon)
