@@ -21,7 +21,7 @@ export const ATTENDANCE_CENTER = {
   name: 'HomPimPlay',
   latitude: -6.8698601,
   longitude: 107.6282757,
-  radiusMeters: 50,
+  radiusMeters: 300,
 }
 
 function getStorageKey(): string {
