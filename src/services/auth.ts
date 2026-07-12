@@ -2,6 +2,8 @@ import { reactive } from 'vue'
 import { apiRequest, setUnauthorizedHandler } from './api'
 
 const TOKEN_KEY = 'hris_mobile_token'
+const USER_KEY = 'hris_mobile_user'
+const SESSION_RESTORE_ATTEMPTS = 3
 
 export interface AuthUser {
   id: number
@@ -30,14 +32,27 @@ export interface SessionPayload {
   menus?: unknown[]
 }
 
+function storedUser(): AuthUser | null {
+  try {
+    const value = localStorage.getItem(USER_KEY)
+    return value ? JSON.parse(value) as AuthUser : null
+  } catch {
+    localStorage.removeItem(USER_KEY)
+    return null
+  }
+}
+
+const storedToken = localStorage.getItem(TOKEN_KEY)
+
 export const authState = reactive({
-  token: localStorage.getItem(TOKEN_KEY),
-  user: null as AuthUser | null,
+  token: storedToken,
+  user: storedToken ? storedUser() : null,
   initialized: false,
 })
 
 function applySession(payload: SessionPayload) {
   authState.user = payload.user
+  localStorage.setItem(USER_KEY, JSON.stringify(payload.user))
 }
 
 function ensureEmployee(payload: SessionPayload) {
@@ -47,6 +62,14 @@ function ensureEmployee(payload: SessionPayload) {
 }
 
 export async function loginEmployee(username: string, password: string) {
+  if (authState.token) {
+    const restored = await restoreExistingSession()
+
+    if (restored) {
+      return
+    }
+  }
+
   const payload = await apiRequest<SessionPayload>('/auth/login', {
     method: 'POST',
     body: { username, password, client: 'mobile' },
@@ -134,17 +157,47 @@ export async function restoreSession() {
   }
 
   try {
-    const payload = await apiRequest<SessionPayload>('/auth/me', {
-      token: authState.token,
-    })
-
-    ensureEmployee(payload)
-    applySession(payload)
+    await restoreExistingSession()
   } catch {
-    clearSession()
+    // Token tetap dipertahankan. Halaman login dapat mencoba memulihkan sesi
+    // yang sama lagi tanpa membuat token baru di backend.
   } finally {
     authState.initialized = true
   }
+}
+
+async function restoreExistingSession() {
+  if (!authState.token) {
+    return false
+  }
+
+  let lastError: unknown
+
+  for (let attempt = 1; attempt <= SESSION_RESTORE_ATTEMPTS; attempt += 1) {
+    try {
+      const payload = await apiRequest<SessionPayload>('/auth/me', {
+        token: authState.token,
+      })
+
+      ensureEmployee(payload)
+      applySession(payload)
+      return true
+    } catch (error) {
+      lastError = error
+
+      if (attempt < SESSION_RESTORE_ATTEMPTS) {
+        await new Promise((resolve) => window.setTimeout(resolve, attempt * 750))
+      }
+    }
+  }
+
+  // Gangguan jaringan atau server tidak membatalkan sesi. Token tetap disimpan
+  // agar pengguna tidak membuat sesi kedua saat koneksi kembali normal.
+  if (authState.user) {
+    return true
+  }
+
+  throw lastError
 }
 
 export async function refreshSession() {
@@ -182,6 +235,7 @@ export function clearSession() {
   authState.token = null
   authState.user = null
   localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
 }
 
 setUnauthorizedHandler(() => {
