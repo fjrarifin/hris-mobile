@@ -115,7 +115,7 @@
           <!-- Real-time clock and location info when active -->
           <div v-if="!attendanceSuccess" class="attendance-info-strip">
             <div class="info-time">{{ liveTime }}</div>
-            <div class="info-gps" :class="{ 'gps-active': gpsInsideRadius }">
+            <div class="info-gps" :class="{ 'gps-active': gpsInsideRadius || !attendanceRadiusRequired }">
               <span class="gps-pulse" v-if="gpsLoading"></span>
               <span>{{ gpsStatusText }}</span>
             </div>
@@ -130,7 +130,7 @@
           <button 
             v-if="!attendanceSuccess" 
             class="capture-btn" 
-            :disabled="!cameraActive || gpsLoading || !gpsCoords || !gpsInsideRadius"
+            :disabled="!cameraActive || gpsLoading || !gpsCoords || (attendanceRadiusRequired && !gpsInsideRadius)"
             @click="takeSelfieAndAbsen"
           >
             <ion-icon :icon="cameraOutline" />
@@ -202,6 +202,7 @@ const successLocationLabel = ref('')
 const todayStatusLabel = ref('Absen Masuk Berhasil!')
 const attendanceType = ref<'Masuk' | 'Pulang'>('Masuk')
 const profilePhoto = computed(() => authState.user?.photo_url || '')
+const attendanceRadiusRequired = computed(() => authState.user?.attendance_radius_required !== false)
 const profileInitials = computed(() =>
   (authState.user?.name || authState.user?.username || 'P')
     .split(' ')
@@ -269,9 +270,11 @@ function getGPSLocation() {
       const distance = Math.round(attendanceDistanceMeters(lat, lon))
       gpsCoords.value = { latitude: lat, longitude: lon }
       gpsInsideRadius.value = isInsideAttendanceRadius(lat, lon)
-      gpsStatusText.value = gpsInsideRadius.value
-        ? `Dalam radius ${ATTENDANCE_CENTER.name} (${distance}m, akurasi ${acc}m)`
-        : `Di luar radius ${ATTENDANCE_CENTER.name} (${distance}m dari titik absen)`
+      gpsStatusText.value = !attendanceRadiusRequired.value
+        ? `Lokasi tercatat (${distance}m dari ${ATTENDANCE_CENTER.name}, tanpa batas radius)`
+        : gpsInsideRadius.value
+          ? `Dalam radius ${ATTENDANCE_CENTER.name} (${distance}m, akurasi ${acc}m)`
+          : `Di luar radius ${ATTENDANCE_CENTER.name} (${distance}m dari titik absen)`
       gpsLoading.value = false
     },
     (error) => {
@@ -471,7 +474,7 @@ async function takeSelfieAndAbsen() {
   }
 
   const distance = Math.round(attendanceDistanceMeters(gpsCoords.value.latitude, gpsCoords.value.longitude))
-  if (!gpsInsideRadius.value) {
+  if (attendanceRadiusRequired.value && !gpsInsideRadius.value) {
     await showAppAlert({
       header: 'Di Luar Radius Absensi',
       message: `Absensi mobile hanya bisa dilakukan maksimal ${ATTENDANCE_CENTER.radiusMeters} meter dari ${ATTENDANCE_CENTER.name}. Jarak Anda saat ini sekitar ${distance} meter.`,

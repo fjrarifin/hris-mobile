@@ -14,6 +14,7 @@ export interface AuthUser {
   photo_url: string | null
   must_change_password: boolean
   allow_mobile_attendance: boolean
+  attendance_radius_required: boolean
   session_idle_timeout_minutes?: number
 }
 
