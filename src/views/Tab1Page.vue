@@ -303,6 +303,7 @@ import {
   chevronForwardOutline,
   closeOutline,
   documentTextOutline,
+  documentAttachOutline,
   fingerPrintOutline,
   bookOutline,
   checkboxOutline,
@@ -447,6 +448,7 @@ const greetingLabel = computed(() => {
 
 const quickActions = computed<QuickAction[]>(() => [
   { label: 'Absensi', hint: 'Riwayat hadir', icon: fingerPrintOutline, path: '/tabs/attendance', bg: 'rgba(59,130,246,0.12)' },
+  { label: 'Kontrak', hint: 'Kontrak kerja', icon: documentAttachOutline, path: '/contracts', bg: 'rgba(236,72,153,0.12)' },
   { label: 'Cuti', hint: 'Ajukan cuti', icon: calendarClearOutline, path: '/requests/leave', bg: 'rgba(34,197,94,0.12)' },
   { label: 'PH', hint: 'Hari libur', icon: shieldCheckmarkOutline, path: '/requests/public-holiday', bg: 'rgba(167,139,250,0.12)' },
   { label: 'EO', hint: 'Extra off', icon: calendarOutline, path: '/requests/extra-off', bg: 'rgba(20,184,166,0.12)' },

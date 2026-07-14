@@ -361,6 +361,7 @@ const qrReasonSaving = ref(false)
 const qrReasonMessage = ref('')
 const qrModalOpen = ref(false)
 const qrDataUrl = ref('')
+const qrAccessDateCode = ref('')
 const testingPush = ref(false)
 
 const selectedNik = computed(() => {
@@ -407,19 +408,12 @@ const themeToggleLabel = computed(() =>
 const photoLocked = computed(() => profile.value?.user?.can_change_photo === false)
 const phoneLocked = computed(() => profile.value?.user?.can_change_phone === false)
 const emailLocked = computed(() => profile.value?.user?.can_change_email === false)
-const qrDateCode = computed(() => {
-  const today = new Date()
-  const year = String(today.getFullYear()).slice(-2)
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const day = String(today.getDate()).padStart(2, '0')
-
-  return `${year}${month}${day}`
-})
+const qrEmployeeNik = computed(() => String(employee.value?.nik || username.value || '').trim())
 const qrPayload = computed(() =>
   JSON.stringify({
-    t: employee.value?.nik || username.value,
-    m: profileName.value,
-    c: qrDateCode.value,
+    t: `${qrAccessDateCode.value}${qrEmployeeNik.value.slice(-4)}`,
+    m: qrEmployeeNik.value,
+    c: qrAccessDateCode.value,
     x: [[9, 100, 374]],
   }),
 )
@@ -672,6 +666,7 @@ function closeQrModal() {
 }
 
 async function refreshQrCode() {
+  qrAccessDateCode.value = formatQrDateCode(new Date())
   qrDataUrl.value = await QRCode.toDataURL(qrPayload.value, {
     errorCorrectionLevel: 'M',
     margin: 1,
@@ -681,6 +676,14 @@ async function refreshQrCode() {
       light: '#ffffff',
     },
   })
+}
+
+function formatQrDateCode(date: Date) {
+  const year = String(date.getFullYear()).slice(-2)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}${month}${day}`
 }
 
 async function saveEmail() {

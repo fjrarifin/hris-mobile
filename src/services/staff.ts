@@ -65,6 +65,44 @@ export interface StaffSubordinateToday {
   }>
 }
 
+export interface StaffContract {
+  id: number
+  contract_number: number
+  contract_type: string
+  start_date: string | null
+  end_date: string | null
+  status: string
+  state: 'active' | 'upcoming' | 'history'
+  remaining_days: number | null
+  description: string | null
+  has_document: boolean
+}
+
+export interface StaffContractsResponse {
+  as_of_date: string
+  employee: {
+    nik: string
+    name: string
+  }
+  own_contracts: StaffContract[]
+  team_contracts: Array<{
+    employee: {
+      nik: string
+      name: string
+      position: string | null
+      department: string | null
+      unit: string | null
+    }
+    contract: StaffContract
+  }>
+}
+
+export interface StaffContractPdfPreview {
+  filename: string
+  mime_type: string
+  content_base64: string
+}
+
 export interface StaffProfile {
   user: {
     id: number | null
@@ -211,6 +249,7 @@ const TTL = {
   dashboard: 2 * 60 * 1000,
   attendance: 5 * 60 * 1000,
   profile: 24 * 60 * 60 * 1000,
+  contracts: 5 * 60 * 1000,
 }
 
 export async function getStaffDashboard(options: { force?: boolean } = {}) {
@@ -293,6 +332,19 @@ export function getStaffProfile(options: { force?: boolean } = {}) {
   return cachedApiRequest<StaffProfile>('staff-profile', '/staff/profile', {
     ttlMs: TTL.profile,
     force: options.force,
+  })
+}
+
+export function getStaffContracts(options: { force?: boolean } = {}) {
+  return cachedApiRequest<StaffContractsResponse>('staff-contracts', '/staff/contracts', {
+    ttlMs: TTL.contracts,
+    force: options.force,
+  })
+}
+
+export function getStaffContractPdfPreview(contractId: number) {
+  return apiRequest<StaffContractPdfPreview>(`/staff/contracts/${contractId}/pdf-preview`, {
+    token: authState.token,
   })
 }
 
