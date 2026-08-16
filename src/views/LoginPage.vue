@@ -148,7 +148,7 @@ import { loginEmployee } from '@/services/auth'
 import { checkForAppUpdate } from '@/services/appUpdate'
 
 const router = useRouter()
-const appVersion = import.meta.env.VITE_APP_VERSION || '1.6.9'
+const appVersion = import.meta.env.VITE_APP_VERSION || '1.7.7'
 
 const form = reactive({ username: '', password: '' })
 const loading  = ref(false)

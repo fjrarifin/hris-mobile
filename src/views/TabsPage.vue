@@ -115,7 +115,7 @@
           <!-- Real-time clock and location info when active -->
           <div v-if="!attendanceSuccess" class="attendance-info-strip">
             <div class="info-time">{{ liveTime }}</div>
-            <div class="info-gps" :class="{ 'gps-active': gpsInsideRadius || !attendanceRadiusRequired }">
+            <div class="info-gps" :class="{ 'gps-active': Boolean(gpsCoords) }">
               <span class="gps-pulse" v-if="gpsLoading"></span>
               <span>{{ gpsStatusText }}</span>
             </div>
@@ -130,7 +130,7 @@
           <button 
             v-if="!attendanceSuccess" 
             class="capture-btn" 
-            :disabled="!cameraActive || gpsLoading || !gpsCoords || (attendanceRadiusRequired && !gpsInsideRadius)"
+            :disabled="!cameraActive || gpsLoading || !gpsCoords"
             @click="takeSelfieAndAbsen"
           >
             <ion-icon :icon="cameraOutline" />
@@ -270,11 +270,7 @@ function getGPSLocation() {
       const distance = Math.round(attendanceDistanceMeters(lat, lon))
       gpsCoords.value = { latitude: lat, longitude: lon }
       gpsInsideRadius.value = isInsideAttendanceRadius(lat, lon)
-      gpsStatusText.value = !attendanceRadiusRequired.value
-        ? `Lokasi tercatat (${distance}m dari ${ATTENDANCE_CENTER.name}, tanpa batas radius)`
-        : gpsInsideRadius.value
-          ? `Dalam radius ${ATTENDANCE_CENTER.name} (${distance}m, akurasi ${acc}m)`
-          : `Di luar radius ${ATTENDANCE_CENTER.name} (${distance}m dari titik absen)`
+      gpsStatusText.value = `Lokasi GPS: ${lat.toFixed(5)}, ${lon.toFixed(5)} (${distance}m dari ${ATTENDANCE_CENTER.name}, akurasi ${acc}m)`
       gpsLoading.value = false
     },
     (error) => {
@@ -474,14 +470,6 @@ async function takeSelfieAndAbsen() {
   }
 
   const distance = Math.round(attendanceDistanceMeters(gpsCoords.value.latitude, gpsCoords.value.longitude))
-  if (attendanceRadiusRequired.value && !gpsInsideRadius.value) {
-    await showAppAlert({
-      header: 'Di Luar Radius Absensi',
-      message: `Absensi mobile hanya bisa dilakukan maksimal ${ATTENDANCE_CENTER.radiusMeters} meter dari ${ATTENDANCE_CENTER.name}. Jarak Anda saat ini sekitar ${distance} meter.`,
-      type: 'warning',
-    })
-    return
-  }
   
   if (canvas && video && cameraActive.value) {
     const context = canvas.getContext('2d')

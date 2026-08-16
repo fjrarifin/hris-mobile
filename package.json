@@ -1,7 +1,7 @@
 {
   "name": "hris-mobile",
   "private": true,
-  "version": "1.7.6",
+  "version": "1.7.7",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -33,22 +33,15 @@
     "vue-router": "^4.2.0"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "8.3.4",
-    "@types/qrcode": "^1.5.6",
-    "@vitejs/plugin-legacy": "^5.0.0",
-    "@vitejs/plugin-vue": "^4.0.0",
+    "@vitejs/plugin-vue": "^5.0.0",
     "@vue/eslint-config-typescript": "^12.0.0",
-    "@vue/test-utils": "^2.3.0",
-    "cypress": "^13.5.0",
-    "eslint": "^8.35.0",
-    "eslint-plugin-vue": "^9.9.0",
-    "jsdom": "^22.1.0",
-    "terser": "^5.4.0",
-    "typescript": "~5.9.0",
+    "cypress": "^13.6.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^9.23.0",
+    "jsdom": "^24.0.0",
+    "typescript": "^5.2.2",
     "vite": "^5.0.0",
-    "vitest": "^0.34.6",
-    "vue-tsc": "^2.1.10"
-  },
-  "description": "An Ionic project"
+    "vitest": "^1.5.0",
+    "vue-tsc": "^2.0.0"
+  }
 }
