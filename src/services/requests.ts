@@ -79,6 +79,7 @@ export interface PermissionResponse {
 }
 
 export interface TeamScheduleEmployee {
+  can_manage: boolean
   nik: string
   name: string
   position: string
@@ -114,6 +115,7 @@ export interface TeamScheduleResponse {
 
 export interface TeamEmployeeScheduleResponse {
   employee: {
+    can_manage: boolean
     nik: string
     name: string
     position: string

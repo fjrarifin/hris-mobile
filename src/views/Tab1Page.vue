@@ -757,7 +757,7 @@ async function showSupervisorAccessAlert(action: QuickAction) {
     message: action.access === 'team_schedules'
       ? 'Menu Jadwal Tim digunakan oleh atasan yang memiliki bawahan langsung atau tidak langsung.'
       : action.access === 'subordinates'
-        ? 'Menu Tim Saya digunakan oleh atasan yang memiliki bawahan langsung.'
+        ? 'Menu Tim Saya digunakan oleh atasan yang memiliki bawahan langsung atau tidak langsung.'
       : action.access === 'approvals'
         ? 'Menu Approval digunakan oleh atasan yang memiliki bawahan.'
       : 'Menu Pengajuan Lembur digunakan oleh atasan yang memiliki bawahan langsung.',

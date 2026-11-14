@@ -11,7 +11,7 @@
         <section class="hero-card">
           <span class="hero-eyebrow">Persetujuan Tim</span>
           <h2>{{ pendingCount }} pengajuan menunggu</h2>
-          <p>Proses dan pantau riwayat cuti, PH, extra off, izin, dan sakit bawahan langsung Anda.</p>
+          <p>Proses pengajuan bawahan langsung. Pengajuan cuti, PH, extra off, izin, dan sakit bawahan tidak langsung hanya dapat dilihat.</p>
         </section>
 
         <section class="history-section">

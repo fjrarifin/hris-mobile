@@ -19,7 +19,7 @@
         <section class="hero-card contract-hero">
           <span class="hero-eyebrow">Dokumen Kepegawaian</span>
           <h2>{{ data?.employee.name || 'Kontrak Saya' }}</h2>
-          <p>Lihat masa berlaku kontrak aktif, riwayat kontrak Anda, dan kontrak aktif bawahan langsung.</p>
+          <p>Lihat masa berlaku kontrak aktif, riwayat kontrak Anda, dan kontrak aktif bawahan langsung maupun tidak langsung.</p>
           <div class="contract-summary">
             <div><strong>{{ activeOwnContracts.length }}</strong><span>Aktif</span></div>
             <div><strong>{{ historyOwnContracts.length }}</strong><span>Riwayat</span></div>
@@ -84,7 +84,7 @@
           <div class="section-heading">
             <div>
               <h2>Kontrak Aktif Tim</h2>
-              <p>Hanya bawahan langsung dengan kontrak aktif</p>
+              <p>Bawahan langsung dan tidak langsung dengan kontrak aktif</p>
             </div>
             <span class="count-pill">{{ data?.team_contracts.length || 0 }}</span>
           </div>
@@ -107,7 +107,7 @@
           </article>
 
           <div v-if="!data?.team_contracts.length" class="empty-card">
-            Belum ada kontrak aktif bawahan langsung.
+            Belum ada kontrak aktif bawahan langsung maupun tidak langsung.
           </div>
         </section>
       </main>

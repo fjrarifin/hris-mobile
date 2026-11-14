@@ -11,7 +11,7 @@
         <section class="hero-card">
           <span class="hero-eyebrow">Assignment Shift</span>
           <h2>{{ team?.supervisor.name || 'Jadwal bawahan' }}</h2>
-          <p>Atur jadwal bawahan langsung dan tidak langsung untuk periode maksimal 46 hari.</p>
+          <p>Atur jadwal bawahan langsung. Jadwal bawahan tidak langsung hanya dapat dilihat. Periode maksimal 46 hari.</p>
         </section>
 
         <section class="form-card">
@@ -38,7 +38,7 @@
             <p>{{ employee.position }} · {{ employee.department }}</p>
             <small>{{ employee.unit }} · {{ employee.relationship }}</small>
             <button type="button" class="secondary-button" @click="openEmployee(employee.nik)">
-              Detail / Edit Jadwal
+              {{ employee.can_manage ? 'Detail / Edit Jadwal' : 'Lihat Jadwal' }}
             </button>
           </article>
           <div v-if="!loading && team && !team.employees.length" class="empty-card">
@@ -51,17 +51,18 @@
 
         <section v-if="employeeSchedule" class="form-card">
           <h2>Jadwal {{ employeeSchedule.employee.name }}</h2>
+          <p v-if="!employeeSchedule.employee.can_manage">Hanya lihat: jadwal bawahan tidak langsung tidak dapat diubah.</p>
           <form class="request-form" @submit.prevent="saveSchedule">
             <label v-for="date in employeeSchedule.dates" :key="date.date">
               <span>{{ requestDate(date.date) }}</span>
-              <select v-model="date.code">
+              <select v-model="date.code" :disabled="!employeeSchedule.employee.can_manage">
                 <option value="">Belum ditentukan</option>
                 <option v-for="category in employeeSchedule.categories" :key="category.code" :value="category.code">
                   {{ category.code }} - {{ category.name }}
                 </option>
               </select>
             </label>
-            <ion-button type="submit" expand="block" :disabled="saving">
+            <ion-button v-if="employeeSchedule.employee.can_manage" type="submit" expand="block" :disabled="saving">
               {{ saving ? 'Menyimpan...' : 'Simpan Jadwal Bawahan' }}
             </ion-button>
           </form>
@@ -170,7 +171,7 @@ async function openEmployee(nik: string) {
 }
 
 async function saveSchedule() {
-  if (!employeeSchedule.value) return
+  if (!employeeSchedule.value?.employee.can_manage) return
   saving.value = true
   try {
     const response = await saveTeamEmployeeSchedule(employeeSchedule.value.employee.nik, {
