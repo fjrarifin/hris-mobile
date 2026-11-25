@@ -76,6 +76,25 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/work-orders',
+    component: () => import('@/views/WorkOrderPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/talent',
+    component: () => import('@/views/StaffTalentPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/nova-chat',
+    redirect: '/tabs/nova'
+  },
+  {
+    path: '/guide',
+    component: () => import('@/views/Tab4Page.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/tabs/',
     component: TabsPage,
     meta: { requiresAuth: true },
@@ -97,8 +116,8 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/Tab3Page.vue')
       },
       {
-        path: 'guide',
-        component: () => import('@/views/Tab4Page.vue')
+        path: 'nova',
+        component: () => import('@/views/NovaChatPage.vue')
       }
     ]
   }

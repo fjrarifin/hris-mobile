@@ -20,8 +20,8 @@
                 <span>Sumber Saldo EO</span>
                 <select :value="sourceValue" required @change="chooseSource">
                   <option disabled value="">Pilih Periode Payroll</option>
-                  <option v-for="source in data.sources" :key="`${source.source_period_start}|${source.source_period_end}`" :value="`${source.source_period_start}|${source.source_period_end}`">
-                    {{ source.label }} - sisa {{ source.remaining_days }} hari
+                  <option v-for="source in data.sources" :key="`${source.source_period_start}|${source.source_period_end}|${source.source_id ?? ''}`" :value="`${source.source_period_start}|${source.source_period_end}`">
+                    {{ source.label }} - sisa {{ source.remaining_days }} hari{{ source.expired_at ? ` (Exp: ${requestDate(source.expired_at)})` : '' }}
                   </option>
                 </select>
               </label>
@@ -42,6 +42,17 @@
             <button v-if="item.status === 'pending'" type="button" class="cancel-button" @click="remove(item.id)">Batalkan pengajuan</button>
           </article>
           <div v-if="!loading && !data.requests.length" class="empty-card">Belum ada pengajuan EO.</div>
+        </section>
+        <section v-if="data.expired_sources?.length" class="history-section">
+          <h2>EO Kedaluwarsa / Hangus</h2>
+          <article v-for="source in data.expired_sources" :key="`exp-${source.source_id ?? source.source_period_start}`" class="history-card">
+            <div class="history-top">
+              <strong>{{ source.label }}</strong>
+              <span class="status-pill status-rejected">Kedaluwarsa</span>
+            </div>
+            <p>Sisa hangus {{ source.expired_days }} hari{{ source.expired_at ? ` • Berlaku s/d ${requestDate(source.expired_at)}` : '' }}</p>
+            <p style="font-size: 0.78rem; opacity: 0.8;">Hangus karena tidak digunakan hingga tanggal kedaluwarsa.</p>
+          </article>
         </section>
       </main>
     </ion-content>

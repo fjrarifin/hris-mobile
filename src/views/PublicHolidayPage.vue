@@ -10,7 +10,7 @@
         <section class="hero-card">
           <span class="hero-eyebrow">Saldo PH Tersedia</span>
           <strong>{{ data.balance }}</strong>
-          <p>Pilih hak PH yang tersedia dan tentukan tanggal pengambilannya.</p>
+          <p>PH berlaku 3 bulan kalender, wajib digunakan paling lambat tanggal kedaluwarsa, dan hangus mulai hari berikutnya.</p>
         </section>
         <section class="form-card">
           <h2>Ajukan Public Holiday</h2>
@@ -21,11 +21,17 @@
                 <select v-model="form.public_holiday_id" required>
                   <option disabled value="">Pilih Public Holiday</option>
                   <option v-for="holiday in data.holidays" :key="holiday.id" :value="String(holiday.id)">
-                    {{ holiday.name }} - {{ requestDate(holiday.holiday_date) }}
+                    {{ holiday.name }} - {{ requestDate(holiday.holiday_date) }}{{ holiday.expired_at ? ` (Berlaku s/d ${requestDate(holiday.expired_at)})` : '' }}
                   </option>
                 </select>
               </label>
-              <label><span>Tanggal Pengambilan</span><input v-model="form.claim_date" type="date" required /></label>
+              <label>
+                <span>Tanggal Pengambilan</span>
+                <input v-model="form.claim_date" type="date" :max="selectedHoliday?.expired_at || undefined" required />
+                <small v-if="selectedHoliday?.expired_at" style="color: #d97706; font-size: 0.75rem; margin-top: 4px; display: block;">
+                  Wajib digunakan paling lambat {{ requestDate(selectedHoliday.expired_at) }} (hangus mulai hari berikutnya).
+                </small>
+              </label>
             </div>
             <ion-button type="submit" expand="block" :disabled="saving">{{ saving ? 'Mengirim...' : 'Kirim Pengajuan PH' }}</ion-button>
           </form>
@@ -43,6 +49,17 @@
           </article>
           <div v-if="!loading && !data.requests.length" class="empty-card">Belum ada pengajuan PH.</div>
         </section>
+        <section v-if="data.expired_holidays?.length" class="history-section">
+          <h2>PH Kedaluwarsa / Hangus</h2>
+          <article v-for="holiday in data.expired_holidays" :key="`exp-${holiday.id}`" class="history-card">
+            <div class="history-top">
+              <strong>{{ holiday.name }}</strong>
+              <span class="status-pill status-rejected">Kedaluwarsa</span>
+            </div>
+            <p>Tanggal libur {{ requestDate(holiday.holiday_date) }}{{ holiday.expired_at ? ` • Berlaku s/d ${requestDate(holiday.expired_at)}` : '' }}</p>
+            <p style="font-size: 0.78rem; opacity: 0.8;">Hangus karena tidak digunakan hingga tanggal kedaluwarsa.</p>
+          </article>
+        </section>
       </main>
     </ion-content>
   </ion-page>
@@ -52,7 +69,7 @@
 import { IonButton, IonContent, IonIcon, IonPage, IonRefresher, IonRefresherContent } from '@ionic/vue'
 import type { RefresherCustomEvent } from '@ionic/vue'
 import { arrowBackOutline } from 'ionicons/icons'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showAppAlert } from '@/services/alerts'
 import { apiErrorMessage } from '@/services/api'
@@ -62,6 +79,9 @@ import { requestDate, requestStatusClass, requestStatusLabel } from '@/utils/req
 const router = useRouter()
 const data = ref<PublicHolidayResponse>({ balance: 0, holidays: [], requests: [] })
 const form = reactive({ public_holiday_id: '', claim_date: '' })
+const selectedHoliday = computed(() =>
+  data.value.holidays.find((holiday) => String(holiday.id) === String(form.public_holiday_id)) ?? null
+)
 const loading = ref(true)
 const saving = ref(false)
 

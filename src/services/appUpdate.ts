@@ -36,7 +36,7 @@ export interface MobileAppRelease {
 
 let checking = false
 let lastPromptedVersionCode = 0
-const UPDATE_HELP_WHATSAPP = '6282117289833'
+const UPDATE_HELP_WHATSAPP = '6282343512356'
 
 export async function checkForAppUpdate(options: { silent?: boolean } = {}) {
   if (checking || !Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {

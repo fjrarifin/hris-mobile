@@ -31,6 +31,14 @@
               <button
                 type="button"
                 class="notification-btn"
+                aria-label="Tanya Nova AI"
+                @click="router.push('/tabs/nova')"
+              >
+                <ion-icon :icon="sparklesOutline" />
+              </button>
+              <button
+                type="button"
+                class="notification-btn"
                 aria-label="Cari karyawan"
                 @click="openEmployeeSearch"
               >
@@ -297,11 +305,13 @@ import {
 } from '@ionic/vue'
 import type { RefresherCustomEvent } from '@ionic/vue'
 import {
+  briefcaseOutline,
   calendarClearOutline,
   calendarOutline,
   chevronBackOutline,
   chevronForwardOutline,
   closeOutline,
+  constructOutline,
   documentTextOutline,
   documentAttachOutline,
   fingerPrintOutline,
@@ -313,6 +323,7 @@ import {
   personCircleOutline,
   searchOutline,
   shieldCheckmarkOutline,
+  sparklesOutline,
   timerOutline,
 } from 'ionicons/icons'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -453,12 +464,15 @@ const quickActions = computed<QuickAction[]>(() => [
   { label: 'PH', hint: 'Hari libur', icon: shieldCheckmarkOutline, path: '/requests/public-holiday', bg: 'rgba(167,139,250,0.12)' },
   { label: 'EO', hint: 'Extra off', icon: calendarOutline, path: '/requests/extra-off', bg: 'rgba(20,184,166,0.12)' },
   { label: 'Izin', hint: 'Ajukan izin', icon: documentTextOutline, path: '/requests/permission?type=izin', bg: 'rgba(251,191,36,0.12)' },
+  { label: 'Work Order', hint: 'Tiket & approval', icon: constructOutline, path: '/work-orders', bg: 'rgba(249,115,22,0.12)' },
+  { label: 'Jobdesk & KPI', hint: 'Tugas & target', icon: briefcaseOutline, path: '/talent', bg: 'rgba(99,102,241,0.12)' },
+  { label: 'Nova AI', hint: 'Asisten HRIS', icon: sparklesOutline, path: '/tabs/nova', bg: 'rgba(168,85,247,0.14)' },
   { label: 'Tim Saya', hint: 'Status bawahan', icon: peopleOutline, path: '/team-today', bg: 'rgba(14,165,233,0.12)', access: 'subordinates' },
   { label: 'Approval', hint: 'Setujui tim', icon: checkboxOutline, path: '/team-approvals', bg: 'rgba(34,197,94,0.12)', access: 'approvals' },
   { label: 'Jadwal Tim', hint: 'Shift bawahan', icon: layersOutline, path: '/team-schedules', bg: 'rgba(79,70,229,0.12)', access: 'team_schedules' },
   { label: 'Lembur', hint: 'Ajukan tim', icon: timerOutline, path: '/requests/overtime', bg: 'rgba(124,58,237,0.12)', access: 'overtime' },
   { label: 'Profil', hint: 'Data diri', icon: personCircleOutline, path: '/tabs/profile', bg: 'rgba(148,163,184,0.18)' },
-  { label: 'Panduan', hint: 'Bantuan', icon: bookOutline, path: '/tabs/guide', bg: 'rgba(20,184,166,0.12)' },
+  { label: 'Panduan', hint: 'Bantuan', icon: bookOutline, path: '/guide', bg: 'rgba(20,184,166,0.12)' },
 ])
 
 const attendanceRecordsByDate = computed(

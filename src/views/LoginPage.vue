@@ -105,7 +105,7 @@
 
           <!-- Action buttons -->
           <div class="action-row">
-            <a href="https://wa.me/6282117289833" class="action-btn">
+            <a href="https://wa.me/6282343512356" class="action-btn">
               <ion-icon :icon="logoWhatsapp" class="action-icon whatsapp" aria-hidden="true" />
               <span>Hubungi IT</span>
             </a>

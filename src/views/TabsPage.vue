@@ -25,9 +25,9 @@
         <ion-tab-button class="tab-btn tab-placeholder" disabled>
         </ion-tab-button>
 
-        <ion-tab-button tab="guide" href="/tabs/guide" class="tab-btn">
-          <ion-icon :icon="bookOutline" />
-          <!-- <ion-label>Panduan</ion-label> -->
+        <ion-tab-button tab="nova" href="/tabs/nova" class="tab-btn">
+          <ion-icon :icon="sparklesOutline" />
+          <!-- <ion-label>Nova AI</ion-label> -->
         </ion-tab-button>
 
         <ion-tab-button tab="profile" href="/tabs/profile" class="tab-btn" @click="openOwnProfile">
@@ -157,7 +157,7 @@ import {
   IonTabs,
 } from '@ionic/vue'
 import {
-  bookOutline,
+  sparklesOutline,
   fingerPrintOutline,
   homeOutline,
   cameraOutline,

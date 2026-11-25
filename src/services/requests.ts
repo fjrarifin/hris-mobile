@@ -25,6 +25,7 @@ export interface PublicHolidayItem {
   id: number
   name: string
   holiday_date: string
+  expired_at?: string | null
 }
 
 export interface PublicHolidayRequestItem {
@@ -37,16 +38,21 @@ export interface PublicHolidayRequestItem {
 export interface PublicHolidayResponse {
   balance: number
   holidays: PublicHolidayItem[]
+  expired_holidays?: PublicHolidayItem[]
   requests: PublicHolidayRequestItem[]
 }
 
 export interface ExtraOffSource {
+  source_id?: number
   source_period_start: string
   source_period_end: string
   label: string
   days: number
   used_days: number
   remaining_days: number
+  expired_days?: number
+  expired_at?: string
+  is_expired?: boolean
 }
 
 export interface ExtraOffRequestItem {
@@ -60,6 +66,7 @@ export interface ExtraOffRequestItem {
 export interface ExtraOffResponse {
   balance: number
   sources: ExtraOffSource[]
+  expired_sources?: ExtraOffSource[]
   requests: ExtraOffRequestItem[]
 }
 
